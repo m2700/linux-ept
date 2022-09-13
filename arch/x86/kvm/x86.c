@@ -9685,6 +9685,10 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 		vcpu->arch.complete_userspace_io = complete_hypercall_exit;
 		return 0;
 	}
+	case KVM_HC_TEST:
+		printk(KERN_DEBUG "KVM_HC_TEST: emulated (notsupported)\n");
+		ret = -KVM_ENOSYS;
+		break;
 	default:
 		ret = -KVM_ENOSYS;
 		break;
