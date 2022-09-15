@@ -9686,7 +9686,10 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 		return 0;
 	}
 	case KVM_HC_TEST:
-		printk(KERN_DEBUG "KVM_HC_TEST: emulated (notsupported)\n");
+		printk(KERN_DEBUG "KVM_HC_TEST: EPT_POINTER = %lx\n", vmcs_read64(EPT_POINTER));
+		printk(KERN_DEBUG "KVM_HC_TEST: EPT_POINTER_HIGH = %lx\n", vmcs_read64(EPT_POINTER_HIGH));
+		printk(KERN_DEBUG "KVM_HC_TEST: VM_FUNCTION_CONTROL = %lx\n", vmcs_read64(VM_FUNCTION_CONTROL));
+		printk(KERN_DEBUG "KVM_HC_TEST: VM_FUNCTION_CONTROL_HIGH = %lx\n", vmcs_read64(VM_FUNCTION_CONTROL_HIGH));
 		ret = -KVM_ENOSYS;
 		break;
 	default:
