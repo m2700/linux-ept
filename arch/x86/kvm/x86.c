@@ -9808,7 +9808,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 		return 0;
 	}
 	case KVM_HC_TEST:
-		printk(KERN_DEBUG "KVM_HC_TEST: emulated");
+		printk(KERN_DEBUG "KVM_HC_TEST: emulated\n");
 		if (kvm_x86_ops.test_kvm_op) {
 			kvm_x86_ops.test_kvm_op();
 			ret = 0;
