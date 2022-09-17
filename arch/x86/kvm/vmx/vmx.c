@@ -8068,12 +8068,12 @@ static void vmx_vm_destroy(struct kvm *kvm)
 }
 
 static void vmx_test_kvm_op(void) {
-	// if ((secondary_exec_control & SECONDARY_EXEC_ENABLE_EPT))
 	printk(KERN_DEBUG "vmx_test_kvm_op: cpu_has_secondary_exec_ctrls() = %u\n", cpu_has_secondary_exec_ctrls());
 	printk(KERN_DEBUG "vmx_test_kvm_op: EPT SECONDARY_VM_EXEC_CONTROL = %u\n", vmcs_read32(SECONDARY_VM_EXEC_CONTROL));
 	printk(KERN_DEBUG "vmx_test_kvm_op: SECONDARY_EXEC_ENABLE_EPT = %lu\n", SECONDARY_EXEC_ENABLE_EPT);
 
 	printk(KERN_DEBUG "vmx_test_kvm_op: EPT pointer = 0x%016llx\n", vmcs_read64(EPT_POINTER));
+	printk(KERN_DEBUG "vmx_test_kvm_op: EPT-list pointer = 0x%016llx\n", vmcs_read64(EPTP_LIST_ADDRESS));
 	printk(KERN_DEBUG KERN_DEBUG "vmx_test_kvm_op: VM_FUNCTION_CONTROL = 0x%llx\n", vmcs_read64(VM_FUNCTION_CONTROL));
 }
 
