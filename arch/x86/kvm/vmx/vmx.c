@@ -2789,12 +2789,16 @@ hpa_t *alloc_eptp_list_cpu(int cpu, gfp_t flags) {
 	hpa_t *eptp_list;
 
 	pages = __alloc_pages_node(node, flags, 0);
+	if (!pages)
+		return NULL;
 	eptp_list = page_address(pages);
+	printk(KERN_DEBUG "EPTP-list: allocate: %p\n", (void*)eptp_list);
 	memset(eptp_list, 0, PAGE_SIZE);
 	return eptp_list;
 }
 
 void free_eptp_list(hpa_t *eptp_list) {
+	printk(KERN_DEBUG "EPTP-list: free: %p\n", (void*)eptp_list);
 	free_page((unsigned long)eptp_list);
 }
 
@@ -8091,7 +8095,9 @@ static void vmx_vm_destroy(struct kvm *kvm)
 	free_pages((unsigned long)kvm_vmx->pid_table, vmx_get_pid_table_order(kvm));
 }
 
-static void vmx_test_kvm_op(void) {
+static void vmx_test_kvm_op(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
+							unsigned long map_src, unsigned long map_dst,
+							unsigned long page_count, unsigned long flags) {
 	printk(KERN_DEBUG "vmx_test_kvm_op: cpu_has_secondary_exec_ctrls() = %u\n", cpu_has_secondary_exec_ctrls());
 	printk(KERN_DEBUG "vmx_test_kvm_op: EPT SECONDARY_VM_EXEC_CONTROL = %u\n", vmcs_read32(SECONDARY_VM_EXEC_CONTROL));
 	printk(KERN_DEBUG "vmx_test_kvm_op: SECONDARY_EXEC_ENABLE_EPT = %lu\n", SECONDARY_EXEC_ENABLE_EPT);

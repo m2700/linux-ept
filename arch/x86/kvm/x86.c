@@ -9600,7 +9600,7 @@ static int complete_hypercall_exit(struct kvm_vcpu *vcpu)
 
 int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 {
-	unsigned long nr, a0, a1, a2, a3, ret;
+	unsigned long nr, a0, a1, a2, a3, a4, ret;
 	int op_64_bit;
 
 	if (kvm_xen_hypercall_enabled(vcpu->kvm))
@@ -9614,6 +9614,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 	a1 = kvm_rcx_read(vcpu);
 	a2 = kvm_rdx_read(vcpu);
 	a3 = kvm_rsi_read(vcpu);
+	a4 = kvm_rdi_read(vcpu);
 
 	trace_kvm_hypercall(nr, a0, a1, a2, a3);
 
@@ -9624,6 +9625,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 		a1 &= 0xFFFFFFFF;
 		a2 &= 0xFFFFFFFF;
 		a3 &= 0xFFFFFFFF;
+		a4 &= 0xFFFFFFFF;
 	}
 
 	if (static_call(kvm_x86_get_cpl)(vcpu) != 0) {
@@ -9688,7 +9690,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 	case KVM_HC_TEST:
 		printk(KERN_DEBUG "KVM_HC_TEST: emulated\n");
 		if (kvm_x86_ops.test_kvm_op) {
-			kvm_x86_ops.test_kvm_op();
+			kvm_x86_ops.test_kvm_op(vcpu, a0, a1, a2, a3, a4);
 			ret = 0;
 		} else {
 			ret = -KVM_ENOSYS;
