@@ -374,6 +374,9 @@ struct vcpu_vmx {
 		DECLARE_BITMAP(read, MAX_POSSIBLE_PASSTHROUGH_MSRS);
 		DECLARE_BITMAP(write, MAX_POSSIBLE_PASSTHROUGH_MSRS);
 	} shadow_msr_intercept;
+
+	/* EPT-pointer list with 512 elements */
+	hpa_t *eptp_list;
 };
 
 struct kvm_vmx {
@@ -699,6 +702,14 @@ static inline struct vmcs *alloc_vmcs(bool shadow)
 {
 	return alloc_vmcs_cpu(shadow, raw_smp_processor_id(),
 			      GFP_KERNEL_ACCOUNT);
+}
+
+hpa_t *alloc_eptp_list_cpu(int cpu, gfp_t flags);
+void free_eptp_list(hpa_t *eptp_list);
+
+static inline struct vmcs *alloc_eptp_list()
+{
+	return alloc_eptp_list_cpu(raw_smp_processor_id(), GFP_KERNEL_ACCOUNT);
 }
 
 static inline bool vmx_has_waitpkg(struct vcpu_vmx *vmx)
