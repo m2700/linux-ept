@@ -709,7 +709,7 @@ static inline struct vmcs *alloc_vmcs(bool shadow)
 hpa_t *alloc_eptp_list_cpu(int cpu, gfp_t flags);
 void free_eptp_list(hpa_t *eptp_list);
 
-static inline struct vmcs *alloc_eptp_list()
+static inline hpa_t *alloc_eptp_list(void)
 {
 	return alloc_eptp_list_cpu(raw_smp_processor_id(), GFP_KERNEL_ACCOUNT);
 }
