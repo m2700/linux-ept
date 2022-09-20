@@ -2772,7 +2772,7 @@ struct vmcs *alloc_vmcs_cpu(bool shadow, int cpu, gfp_t flags)
 		vmcs->hdr.revision_id = KVM_EVMCS_VERSION;
 	else
 		vmcs->hdr.revision_id = vmcs_config.revision_id;
-
+	
 	if (shadow)
 		vmcs->hdr.shadow_vmcs = 1;
 	return vmcs;
@@ -2781,6 +2781,21 @@ struct vmcs *alloc_vmcs_cpu(bool shadow, int cpu, gfp_t flags)
 void free_vmcs(struct vmcs *vmcs)
 {
 	free_page((unsigned long)vmcs);
+}
+
+hpa_t *alloc_eptp_list_cpu(int cpu, gfp_t flags) {
+	int node = cpu_to_node(cpu);
+	struct page *pages;
+	hpa_t *eptp_list;
+
+	pages = __alloc_pages_node(node, flags, 0);
+	eptp_list = page_address(pages);
+	memset(eptp_list, 0, PAGE_SIZE);
+	return eptp_list;
+}
+
+void free_eptp_list(hpa_t *eptp_list) {
+	free_page((unsigned long)eptp_list);
 }
 
 /*
@@ -4678,7 +4693,8 @@ static void init_vmcs(struct vcpu_vmx *vmx)
 	vmcs_writel(HOST_GS_BASE, 0); /* 22.2.4 */
 
 	if (cpu_has_vmx_vmfunc())
-		vmcs_write64(VM_FUNCTION_CONTROL, 0);
+		vmcs_write64(VM_FUNCTION_CONTROL, 0b1);
+		vmcs_write64(EPTP_LIST_ADDRESS, __pa(vmx->eptp_list));
 
 	vmcs_write32(VM_EXIT_MSR_STORE_COUNT, 0);
 	vmcs_write32(VM_EXIT_MSR_LOAD_COUNT, 0);
@@ -7299,6 +7315,7 @@ static void vmx_vcpu_free(struct kvm_vcpu *vcpu)
 {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 
+	free_eptp_list(vmx->eptp_list);
 	if (enable_pml)
 		vmx_destroy_pml_buffer(vmx);
 	free_vpid(vmx->vpid);
@@ -7400,6 +7417,12 @@ static int vmx_vcpu_create(struct kvm_vcpu *vcpu)
 	if (vmx_can_use_ipiv(vcpu))
 		WRITE_ONCE(to_kvm_vmx(vcpu->kvm)->pid_table[vcpu->vcpu_id],
 			   __pa(&vmx->pi_desc) | PID_TABLE_ENTRY_VALID);
+	
+	vmx->eptp_list = alloc_eptp_list();
+	if (!vmx->eptp_list) {
+		err = -ENOMEM;
+		goto free_vmcs;
+	}
 
 	return 0;
 
