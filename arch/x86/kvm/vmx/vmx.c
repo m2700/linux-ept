@@ -4692,9 +4692,10 @@ static void init_vmcs(struct vcpu_vmx *vmx)
 	vmcs_writel(HOST_FS_BASE, 0); /* 22.2.4 */
 	vmcs_writel(HOST_GS_BASE, 0); /* 22.2.4 */
 
-	if (cpu_has_vmx_vmfunc())
+	if (cpu_has_vmx_vmfunc()) {
 		vmcs_write64(VM_FUNCTION_CONTROL, 0b1);
 		vmcs_write64(EPTP_LIST_ADDRESS, __pa(vmx->eptp_list));
+	}
 
 	vmcs_write32(VM_EXIT_MSR_STORE_COUNT, 0);
 	vmcs_write32(VM_EXIT_MSR_LOAD_COUNT, 0);
