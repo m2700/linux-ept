@@ -191,7 +191,7 @@ before advertising KVM_FEATURE_HC_MAP_GPA_RANGE in the guest CPUID.  In
 addition, if the guest supports KVM_FEATURE_MIGRATION_CONTROL, userspace
 must also set up an MSR filter to process writes to MSR_KVM_MIGRATION_CONTROL.
 
-9. KVM_HC_TEST
+9. KVM_HC_MAP_EPT_VIEW
 ------------------------
 :Architecture: x86
 :Status: active

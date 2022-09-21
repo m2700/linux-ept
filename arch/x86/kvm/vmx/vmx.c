@@ -8095,16 +8095,16 @@ static void vmx_vm_destroy(struct kvm *kvm)
 	free_pages((unsigned long)kvm_vmx->pid_table, vmx_get_pid_table_order(kvm));
 }
 
-static void vmx_test_kvm_op(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
+static void vmx_map_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 							unsigned long map_src, unsigned long map_dst,
 							unsigned long page_count, unsigned long flags) {
-	printk(KERN_DEBUG "vmx_test_kvm_op: cpu_has_secondary_exec_ctrls() = %u\n", cpu_has_secondary_exec_ctrls());
-	printk(KERN_DEBUG "vmx_test_kvm_op: EPT SECONDARY_VM_EXEC_CONTROL = %u\n", vmcs_read32(SECONDARY_VM_EXEC_CONTROL));
-	printk(KERN_DEBUG "vmx_test_kvm_op: SECONDARY_EXEC_ENABLE_EPT = %lu\n", SECONDARY_EXEC_ENABLE_EPT);
+	printk(KERN_DEBUG "vmx_map_ept_view: cpu_has_secondary_exec_ctrls() = %u\n", cpu_has_secondary_exec_ctrls());
+	printk(KERN_DEBUG "vmx_map_ept_view: EPT SECONDARY_VM_EXEC_CONTROL = %u\n", vmcs_read32(SECONDARY_VM_EXEC_CONTROL));
+	printk(KERN_DEBUG "vmx_map_ept_view: SECONDARY_EXEC_ENABLE_EPT = %lu\n", SECONDARY_EXEC_ENABLE_EPT);
 
-	printk(KERN_DEBUG "vmx_test_kvm_op: EPT pointer = 0x%016llx\n", vmcs_read64(EPT_POINTER));
-	printk(KERN_DEBUG "vmx_test_kvm_op: EPT-list pointer = 0x%016llx\n", vmcs_read64(EPTP_LIST_ADDRESS));
-	printk(KERN_DEBUG KERN_DEBUG "vmx_test_kvm_op: VM_FUNCTION_CONTROL = 0x%llx\n", vmcs_read64(VM_FUNCTION_CONTROL));
+	printk(KERN_DEBUG "vmx_map_ept_view: EPT pointer = 0x%016llx\n", vmcs_read64(EPT_POINTER));
+	printk(KERN_DEBUG "vmx_map_ept_view: EPT-list pointer = 0x%016llx\n", vmcs_read64(EPTP_LIST_ADDRESS));
+	printk(KERN_DEBUG KERN_DEBUG "vmx_map_ept_view: VM_FUNCTION_CONTROL = 0x%llx\n", vmcs_read64(VM_FUNCTION_CONTROL));
 }
 
 static struct kvm_x86_ops vmx_x86_ops __initdata = {
@@ -8245,7 +8245,7 @@ static struct kvm_x86_ops vmx_x86_ops __initdata = {
 
 	.vcpu_deliver_sipi_vector = kvm_vcpu_deliver_sipi_vector,
 
-	.test_kvm_op = vmx_test_kvm_op
+	.map_ept_view = vmx_map_ept_view
 };
 
 static unsigned int vmx_handle_intel_pt_intr(void)
