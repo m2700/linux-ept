@@ -9809,10 +9809,10 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 		vcpu->arch.complete_userspace_io = complete_hypercall_exit;
 		return 0;
 	}
-	case KVM_HC_TEST:
-		printk(KERN_DEBUG "KVM_HC_TEST: emulated\n");
-		if (kvm_x86_ops.test_kvm_op) {
-			kvm_x86_ops.test_kvm_op(vcpu, a0, a1, a2, a3, a4);
+	case KVM_HC_MAP_EPT_VIEW:
+		printk(KERN_DEBUG "KVM_HC_MAP_EPT_VIEW: called\n");
+		if (kvm_x86_ops.map_ept_view) {
+			kvm_x86_ops.map_ept_view(vcpu, a0, a1, a2, a3, a4);
 			ret = 0;
 		} else {
 			ret = -KVM_ENOSYS;

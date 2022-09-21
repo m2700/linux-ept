@@ -1746,9 +1746,9 @@ struct kvm_x86_ops {
 	/*
 	 * EPT-hypercall extensions
 	 */
-	void (*test_kvm_op)(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
-						unsigned long map_src, unsigned long map_dst,
-						unsigned long page_count, unsigned long flags);
+	void (*map_ept_view)(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
+						 unsigned long map_src, unsigned long map_dst,
+						 unsigned long page_count, unsigned long flags);
 };
 
 struct kvm_x86_nested_ops {
