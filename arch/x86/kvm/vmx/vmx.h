@@ -377,6 +377,7 @@ struct vcpu_vmx {
 
 	/* EPT-pointer list with 512 elements */
 	hpa_t *eptp_list;
+	hpa_t ***ept_dirs;
 };
 
 struct kvm_vmx {

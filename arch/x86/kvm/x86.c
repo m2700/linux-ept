@@ -9690,8 +9690,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 	case KVM_HC_MAP_EPT_VIEW:
 		printk(KERN_DEBUG "KVM_HC_MAP_EPT_VIEW: called\n");
 		if (kvm_x86_ops.map_ept_view) {
-			kvm_x86_ops.map_ept_view(vcpu, a0, a1, a2, a3, a4);
-			ret = 0;
+			ret = kvm_x86_ops.map_ept_view(vcpu, a0, a1, a2, a3, a4);
 		} else {
 			ret = -KVM_ENOSYS;
 		}
