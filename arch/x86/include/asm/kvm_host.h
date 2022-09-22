@@ -1746,7 +1746,7 @@ struct kvm_x86_ops {
 	/*
 	 * EPT-hypercall extensions
 	 */
-	void (*map_ept_view)(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
+	long (*map_ept_view)(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 						 unsigned long map_src, unsigned long map_dst,
 						 unsigned long page_count, unsigned long flags);
 };

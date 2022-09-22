@@ -7512,6 +7512,7 @@ static int vmx_vcpu_create(struct kvm_vcpu *vcpu)
 		err = -ENOMEM;
 		goto free_vmcs;
 	}
+	vmx->ept_dirs = NULL;
 
 	return 0;
 
@@ -8158,16 +8159,104 @@ static void vmx_vm_destroy(struct kvm *kvm)
 	free_pages((unsigned long)kvm_vmx->pid_table, vmx_get_pid_table_order(kvm));
 }
 
-static void vmx_map_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
+static long vmx_map_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 							unsigned long map_src, unsigned long map_dst,
 							unsigned long page_count, unsigned long flags) {
+	printk(KERN_DEBUG "vmx_map_ept_view: eptp_idx = 0x%lx\n", eptp_idx);
+	printk(KERN_DEBUG "vmx_map_ept_view: map_src = 0x%lx\n", map_src);
+	printk(KERN_DEBUG "vmx_map_ept_view: map_dst = 0x%lx\n", map_dst);
+	printk(KERN_DEBUG "vmx_map_ept_view: page_count = 0x%lx\n", page_count);
+	printk(KERN_DEBUG "vmx_map_ept_view: flags = 0x%lx\n", flags);
+
 	printk(KERN_DEBUG "vmx_map_ept_view: cpu_has_secondary_exec_ctrls() = %u\n", cpu_has_secondary_exec_ctrls());
 	printk(KERN_DEBUG "vmx_map_ept_view: EPT SECONDARY_VM_EXEC_CONTROL = %u\n", vmcs_read32(SECONDARY_VM_EXEC_CONTROL));
 	printk(KERN_DEBUG "vmx_map_ept_view: SECONDARY_EXEC_ENABLE_EPT = %lu\n", SECONDARY_EXEC_ENABLE_EPT);
 
 	printk(KERN_DEBUG "vmx_map_ept_view: EPT pointer = 0x%016llx\n", vmcs_read64(EPT_POINTER));
 	printk(KERN_DEBUG "vmx_map_ept_view: EPT-list pointer = 0x%016llx\n", vmcs_read64(EPTP_LIST_ADDRESS));
-	printk(KERN_DEBUG KERN_DEBUG "vmx_map_ept_view: VM_FUNCTION_CONTROL = 0x%llx\n", vmcs_read64(VM_FUNCTION_CONTROL));
+	printk(KERN_DEBUG "vmx_map_ept_view: VM_FUNCTION_CONTROL = 0x%llx\n", vmcs_read64(VM_FUNCTION_CONTROL));
+
+	#ifdef alloc_zeroed_page
+	#error "macro collision: alloc_zeroed_page"
+	#endif
+	#define alloc_zeroed_page(gfp_mask) ({        \
+		struct page *page = alloc_page(gfp_mask); \
+		if (!page) return -KVM_ENOMEM;            \
+		void *addr = page_address(pages);         \
+		printk(KERN_DEBUG "vmx_map_ept_view: table allocated: %p\n", addr); \
+		memset(addr, 0, PAGE_SIZE);               \
+		addr;                                     \
+	})
+
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	long res = 0;
+
+	if ((map_src & PAGE_MASK) != 0) {
+		return -KVM_EFAULT;
+	}
+	if ((map_dst & PAGE_MASK) != 0) {
+		return -KVM_EFAULT;
+	}
+	if (eptp_idx >= VMFUNC_EPTP_ENTRIES) {
+		return -KVM_EINVAL;
+	}
+	if ((flags & !PAGE_MASK) != 0) {
+		return -KVM_EINVAL;
+	}
+
+	gfn_t map_dst_gfn = gpa_to_gfn(map_dst);
+	pfn_t map_src_pfn = kvm_vcpu_gfn_to_pfn(vcpu, gpa_to_gfn(map_src));
+	if (!map_src_pfn) {
+		return -KVM_EFAULT;
+	}
+	
+	if (vmx->eptp_list[eptp_idx] == 0) {
+		hpa_t *pml4 = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
+		vmx->eptp_list[eptp_idx] = construct_eptp(vcpu, __pa((hva_t)pml4), PT64_ROOT_4LEVEL);
+	}
+	hpa_t *eptp = __va(vmx->eptp_list[eptp_idx] & !PAGE_MASK);
+
+	for (size_t map_idx = 0; map_idx < page_count; map_idx++)
+	{
+		pfn_t pfn_src = map_src_pfn + map_idx;
+		gfn_t gfn_dst = map_dst_gfn + map_idx;
+
+		pfn_t gfn_lv1i = gfn_dst;
+		pfn_t gfn_lv2i = gfn_lv1i >> 9;
+		pfn_t gfn_lv3i = gfn_lv2i >> 9;
+		pfn_t gfn_lv4i = gfn_lv3i >> 9;
+
+		gfn_lv1i %= 512;
+		gfn_lv2i %= 512;
+		gfn_lv3i %= 512;
+		if (gfn_lv4i >= 512) {
+			return -KVM_EFAULT;
+		}
+
+		if (eptp[gfn_lv4i] == 0) {
+			hva_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
+			eptp[gfn_lv4i] = (hva_t)p | 0b10100000111;
+		}
+		hva_t *pml3 = eptp[gfn_lv4i] & !PAGE_MASK;
+
+		if (pml3[gfn_lv3i] == 0) {
+			hva_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
+			pml3[gfn_lv3i] = (hva_t)p | 0b10100000111;
+		}
+		hva_t *pml2 = pml3[gfn_lv3i] & !PAGE_MASK;
+
+		if (pml2[gfn_lv2i] == 0) {
+			hva_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
+			pml2[gfn_lv2i] = (hva_t)p | 0b10100000111;
+		}
+		hva_t *pml1 = pml2[gfn_lv2i] & !PAGE_MASK;
+
+		pml1[gfn_lv1i] = pfn_to_hpa(pfn_src) | flags;
+	}
+
+	return res;
+
+	#undef alloc_zeroed_page
 }
 
 static struct kvm_x86_ops vmx_x86_ops __initdata = {
