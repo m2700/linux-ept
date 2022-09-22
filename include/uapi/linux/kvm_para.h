@@ -12,6 +12,7 @@
 
 /* Return values for hypercalls */
 #define KVM_ENOSYS		1000
+#define KVM_ENOMEM      ENOMEM
 #define KVM_EFAULT		EFAULT
 #define KVM_EINVAL		EINVAL
 #define KVM_E2BIG		E2BIG
