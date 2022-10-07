@@ -2798,6 +2798,34 @@ hpa_t *alloc_eptp_list_cpu(int cpu, gfp_t flags) {
 }
 
 void free_eptp_list(hpa_t *eptp_list) {
+	for (size_t ept_i = 0; ept_i < VMFUNC_EPTP_ENTRIES; ept_i++) {
+		if (eptp_list[ept_i] == 0) {
+			hpa *pml4 = __va(eptp_list[ept_i] & PHYSICAL_PAGE_MASK);
+			for (size_t pml4_i = 0; pml4_i < VMFUNC_EPTP_ENTRIES; pml4_i++) {
+				if (pml4[pml4_i] == 0) {
+					hpa_t *pml3 = __va(pml4[pml4_i] & PHYSICAL_PAGE_MASK);
+					for (size_t pml3_i = 0; pml3_i < VMFUNC_EPTP_ENTRIES; pml3_i++) {
+						if (pml3[pml3_i] == 0) {
+							hpa_t *pml2 = __va(pml3[pml3_i] & PHYSICAL_PAGE_MASK);
+							for (size_t pml2_i = 0; pml2_i < VMFUNC_EPTP_ENTRIES; pml2_i++) {
+								if (pml2[pml2_i] == 0) {
+									hpa_t *pml1 = __va(pml2[pml2_i] & PHYSICAL_PAGE_MASK);
+									printk(KERN_DEBUG "EPTP-list: free pml1: %p\n", (void*)pml1);
+									free_page((unsigned long)pml1);
+								}
+							}
+							printk(KERN_DEBUG "EPTP-list: free pml2: %p\n", (void*)pml2);
+							free_page((unsigned long)pml2);
+						}
+					}
+					printk(KERN_DEBUG "EPTP-list: free pml3: %p\n", (void*)pml3);
+					free_page((unsigned long)pml3);
+				}
+			}
+			printk(KERN_DEBUG "EPTP-list: free pml4: %p\n", (void*)pml4);
+			free_page((unsigned long)pml4);
+		}
+	}
 	printk(KERN_DEBUG "EPTP-list: free: %p\n", (void*)eptp_list);
 	free_page((unsigned long)eptp_list);
 }
@@ -8128,16 +8156,16 @@ static long vmx_map_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 	long res = 0;
 
-	if ((map_src & PAGE_MASK) != 0) {
+	if ((map_src & !PHYSICAL_PAGE_MASK) != 0) {
 		return -KVM_EFAULT;
 	}
-	if ((map_dst & PAGE_MASK) != 0) {
+	if ((map_dst & !PHYSICAL_PAGE_MASK) != 0) {
 		return -KVM_EFAULT;
 	}
 	if (eptp_idx >= VMFUNC_EPTP_ENTRIES) {
 		return -KVM_EINVAL;
 	}
-	if ((flags & !PAGE_MASK) != 0) {
+	if ((flags & PHYSICAL_PAGE_MASK) != 0) {
 		return -KVM_EINVAL;
 	}
 
@@ -8151,7 +8179,7 @@ static long vmx_map_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 		hpa_t *pml4 = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
 		vmx->eptp_list[eptp_idx] = construct_eptp(vcpu, __pa((hva_t)pml4), PT64_ROOT_4LEVEL);
 	}
-	hpa_t *eptp = __va(vmx->eptp_list[eptp_idx] & !PAGE_MASK);
+	hpa_t *eptp = __va(vmx->eptp_list[eptp_idx] & !PHYSICAL_PAGE_MASK);
 
 	for (size_t map_idx = 0; map_idx < page_count; map_idx++)
 	{
@@ -8171,22 +8199,22 @@ static long vmx_map_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 		}
 
 		if (eptp[gfn_lv4i] == 0) {
-			hva_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
-			eptp[gfn_lv4i] = (hva_t)p | 0b10100000111;
+			hpa_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
+			eptp[gfn_lv4i] = (hpa_t)__pa(p) | 0b10100000111;
 		}
-		hva_t *pml3 = eptp[gfn_lv4i] & !PAGE_MASK;
+		hpa_t *pml3 = __va(eptp[gfn_lv4i] & !PHYSICAL_PAGE_MASK);
 
 		if (pml3[gfn_lv3i] == 0) {
-			hva_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
-			pml3[gfn_lv3i] = (hva_t)p | 0b10100000111;
+			hpa_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
+			pml3[gfn_lv3i] = (hva_t)__pa(p) | 0b10100000111;
 		}
-		hva_t *pml2 = pml3[gfn_lv3i] & !PAGE_MASK;
+		hpa_t *pml2 = __va(pml3[gfn_lv3i] & !PHYSICAL_PAGE_MASK);
 
 		if (pml2[gfn_lv2i] == 0) {
-			hva_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
-			pml2[gfn_lv2i] = (hva_t)p | 0b10100000111;
+			hpa_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
+			pml2[gfn_lv2i] = (hva_t)__pa(p) | 0b10100000111;
 		}
-		hva_t *pml1 = pml2[gfn_lv2i] & !PAGE_MASK;
+		hpa_t *pml1 = __va(pml2[gfn_lv2i] & !PHYSICAL_PAGE_MASK);
 
 		pml1[gfn_lv1i] = pfn_to_hpa(pfn_src) | flags;
 	}
