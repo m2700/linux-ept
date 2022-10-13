@@ -2900,16 +2900,16 @@ hpa_t *alloc_eptp_list_cpu(int cpu, gfp_t flags) {
 
 void free_eptp_list(hpa_t *eptp_list) {
 	for (size_t ept_i = 0; ept_i < VMFUNC_EPTP_ENTRIES; ept_i++) {
-		if (eptp_list[ept_i] == 0) {
+		if (eptp_list[ept_i] != 0) {
 			hpa_t *pml4 = __va(eptp_list[ept_i] & PHYSICAL_PAGE_MASK);
 			for (size_t pml4_i = 0; pml4_i < VMFUNC_EPTP_ENTRIES; pml4_i++) {
-				if (pml4[pml4_i] == 0) {
+				if (pml4[pml4_i] != 0) {
 					hpa_t *pml3 = __va(pml4[pml4_i] & PHYSICAL_PAGE_MASK);
 					for (size_t pml3_i = 0; pml3_i < VMFUNC_EPTP_ENTRIES; pml3_i++) {
-						if (pml3[pml3_i] == 0) {
+						if (pml3[pml3_i] != 0) {
 							hpa_t *pml2 = __va(pml3[pml3_i] & PHYSICAL_PAGE_MASK);
 							for (size_t pml2_i = 0; pml2_i < VMFUNC_EPTP_ENTRIES; pml2_i++) {
-								if (pml2[pml2_i] == 0) {
+								if (pml2[pml2_i] != 0) {
 									hpa_t *pml1 = __va(pml2[pml2_i] & PHYSICAL_PAGE_MASK);
 									printk(KERN_DEBUG "EPTP-list: free pml1: %p\n", (void*)pml1);
 									free_page((unsigned long)pml1);
