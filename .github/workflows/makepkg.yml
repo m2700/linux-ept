@@ -16,9 +16,12 @@ jobs:
 
       - name: Create Makepkg User
         run: useradd makepkg
+      
+      - name: Set Access Rights
+        run: chmod -cR og+rw .
 
       - name: Build Package
-        run: cd .archlinux-pkg && su -c 'makepkg' makepkg && mv linux-ept*.pkg.tar.zst
+        run: cd .archlinux-pkg && su -c 'makepkg' makepkg
       
       - name: Upload Package
         uses: actions/upload-artifact@v3
