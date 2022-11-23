@@ -1,0 +1,29 @@
+name: Makepkg
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: archlinux
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Build Dependencies
+        run: >
+          pacman -Sy --noconfirm base-devel bc git pahole xmlto
+            python-sphinx python-sphinx_rtd_theme graphviz imagemagick
+
+      - name: Create Makepkg User
+        run: useradd makepkg
+
+      - name: Build Package
+        run: cd .archlinux-pkg && su -c 'makepkg' makepkg && mv linux-ept*.pkg.tar.zst
+      
+      - name: Upload Package
+        uses: actions/upload-artifact@v3
+        with:
+          name: archlinux-package
+          path: .archlinux-pkg/linux-*.pkg.tar.zst
+          retention-days: 90
