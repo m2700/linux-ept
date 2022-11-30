@@ -192,7 +192,75 @@ addition, if the guest supports KVM_FEATURE_MIGRATION_CONTROL, userspace
 must also set up an MSR filter to process writes to MSR_KVM_MIGRATION_CONTROL.
 
 9. KVM_HC_MAP_EPT_VIEW
+----------------------
+:Architecture: x86
+:Status: active
+:Purpose: Map a memory range from the default EPT to a view in the EPT-list
+
+- a0: destination EPT-index
+- a1: source pointer in the default view
+- a2: destination pointer in the destination view
+- a3: number of pages to map
+- a4: page flags
+
+10. KVM_HC_UNMAP_EPT_VIEW
+-------------------------
+:Architecture: x86
+:Status: active
+:Purpose: Unmap a memory range in a view of the EPT-list
+
+- a0: destination EPT-index
+- a1: destination pointer in the destination view
+- a2: number of pages to unmap
+
+11. KVM_HC_FREEZE_EPT_MAPPING
+-----------------------------
+:Architecture: x86
+:Status: active
+:Purpose: Disable Hypercalls KVM_HC_MAP_EPT_VIEW and KVM_HC_UNMAP_EPT_VIEW irreversibly.
+
+12. KVM_HC_ADD_EPT_ACCESS
+-------------------------
+:Architecture: x86
+:Status: active
+:Purpose: Add a single bit to an EPT access bitset
+
+- a0: caller view index (is checked for correctness)
+- a1: bitset index
+- a2: view index to be inserted
+
+13. KVM_HC_CREATE_EPT_ACCESS_SET
+--------------------------------
+:Architecture: x86
+:Status: active
+:Purpose: Create a new EPT access bitset with the caller-view index set
+
+- a0: caller view index (is checked for correctness)
+- r0: new bitset index
+
+14. KVM_HC_SET_CHUMMY_ALLOCATOR
+-------------------------------
+:Architecture: x86
+:Status: active
+:Purpose: Set the EPT-allocator memory region
+
+15. KVM_HC_CHUMMY_MALLOC
 ------------------------
 :Architecture: x86
 :Status: active
-:Purpose: Test hypercall
+:Purpose: Allocate a range of pages to be accessible for a specific EPT-access set
+
+- a0: number of pages to allocate
+- a1: access-bitset index
+- r0: allocated address
+
+16. KVM_HC_CHUMMY_FREE
+----------------------
+:Architecture: x86
+:Status: active
+:Purpose: Free a range of pages and make them inaccessible for all affected views
+
+- a0: caller view index (is checked for correctness)
+- a1: pointer to free
+- a2: number of pages to free
+- a3: access-bitset index
