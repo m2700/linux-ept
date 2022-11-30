@@ -32,6 +32,13 @@
 #define KVM_HC_SCHED_YIELD		11
 #define KVM_HC_MAP_GPA_RANGE		12
 #define KVM_HC_MAP_EPT_VIEW		100
+#define KVM_HC_UNMAP_EPT_VIEW		101
+#define KVM_HC_FREEZE_EPT_MAPPING	102
+#define KVM_HC_ADD_EPT_ACCESS			103
+#define KVM_HC_CREATE_EPT_ACCESS_SET	104
+#define KVM_HC_SET_CHUMMY_ALLOCATOR	105
+#define KVM_HC_CHUMMY_MALLOC		106
+#define KVM_HC_CHUMMY_FREE			107
 
 /*
  * hypercalls use architecture specific

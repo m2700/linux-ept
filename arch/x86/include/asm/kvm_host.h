@@ -1749,6 +1749,19 @@ struct kvm_x86_ops {
 	long (*map_ept_view)(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 						 unsigned long map_src, unsigned long map_dst,
 						 unsigned long page_count, unsigned long flags);
+	long (*unmap_ept_view)(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
+						   unsigned long map_dst, unsigned long page_count);
+	long (*freeze_ept_mapping)(struct kvm_vcpu *vcpu);
+	long (*add_ept_access)(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx,
+						   unsigned long bts_id, unsigned long eptp_idx);
+	long (*create_ept_access_set)(struct kvm_vcpu *vcpu, unsigned long eptp_idx);
+	long (*set_chummy_allocator)(struct kvm_vcpu *vcpu, unsigned long alloc_start,
+								 unsigned long alloc_end);
+	long (*chummy_malloc)(struct kvm_vcpu *vcpu, unsigned long num_pages,
+						  unsigned long flag);
+	long (*chummy_free)(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx,
+						unsigned long guest_ptr, unsigned long num_pages,
+						unsigned long flag);
 };
 
 struct kvm_x86_nested_ops {

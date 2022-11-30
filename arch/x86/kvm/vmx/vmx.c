@@ -7438,6 +7438,8 @@ static void vmx_vcpu_free(struct kvm_vcpu *vcpu)
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 
 	free_eptp_list(vmx->eptp_list);
+	kfree(vmx->ept_access_bitsets);
+	chummy_clear(vmx->chummy);
 	if (enable_pml)
 		vmx_destroy_pml_buffer(vmx);
 	free_vpid(vmx->vpid);
@@ -7540,11 +7542,18 @@ static int vmx_vcpu_create(struct kvm_vcpu *vcpu)
 		WRITE_ONCE(to_kvm_vmx(vcpu->kvm)->pid_table[vcpu->vcpu_id],
 			   __pa(&vmx->pi_desc) | PID_TABLE_ENTRY_VALID);
 	
+	vmx->ept_map_freeze = false;
 	vmx->eptp_list = alloc_eptp_list();
 	if (!vmx->eptp_list) {
 		err = -ENOMEM;
 		goto free_vmcs;
 	}
+
+	vmx->ept_access_bitsets = NULL;
+	vmx->ept_access_bitsets_len = 0;
+	vmx->ept_access_bitsets_cap = 0;
+
+	chummy_init = false;
 
 	return 0;
 
@@ -8195,6 +8204,16 @@ static long vmx_map_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 							unsigned long map_src, unsigned long map_dst,
 							unsigned long page_count, unsigned long flags) {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	if (vmx->ept_map_freeze) {
+		return -KVM_EPERM;
+	}
+	return vmx_map_ept_view_nofreeze(vcpu, eptp_idx, map_src, map_dst, page_count, flags);
+} 
+
+static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
+									  unsigned long map_src, unsigned long map_dst,
+									  unsigned long page_count, unsigned long flags) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
 	long res = 0;
 	gfn_t map_dst_gfn;
 	kvm_pfn_t map_src_pfn;
@@ -8412,6 +8431,245 @@ static long vmx_map_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 	#undef alloc_zeroed_page
 }
 
+static long vmx_unmap_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
+							   unsigned long map_dst, unsigned long page_count) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	if (vmx->ept_map_freeze) {
+		return -KVM_EPERM;
+	}
+	return vmx_unmap_ept_view_nofreeze(vcpu, eptp_idx, map_dst, page_count);
+}
+
+static long vmx_unmap_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
+										unsigned long map_dst, unsigned long page_count) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	long res = 0;
+	gfn_t map_dst_gfn;
+	hpa_t *eptp;
+
+	if ((map_dst & !PHYSICAL_PAGE_MASK) != 0 || map_dst % PAGE_SIZE != 0) {
+		return -KVM_EFAULT;
+	}
+	if (eptp_idx >= VMFUNC_EPTP_ENTRIES) {
+		return -KVM_EINVAL;
+	}
+
+	map_dst_gfn = gpa_to_gfn(map_dst);
+	if (page_count == 0) {
+		return res;
+	}
+	
+	if (vmx->eptp_list[eptp_idx] == 0) {
+		return res;
+	}
+	eptp = __va(vmx->eptp_list[eptp_idx] & PHYSICAL_PAGE_MASK);
+
+	for (size_t map_idx = 0; map_idx < page_count; map_idx++)
+	{
+		hpa_t *pml3, *pml2, *pml1;
+
+		gfn_t gfn_dst = map_dst_gfn + map_idx;
+
+		gfn_t gfn_lv1i = gfn_dst;
+		gfn_t gfn_lv2i = gfn_lv1i >> 9;
+		gfn_t gfn_lv3i = gfn_lv2i >> 9;
+		gfn_t gfn_lv4i = gfn_lv3i >> 9;
+		printk(KERN_DEBUG "vmx_unmap_ept_view: gfn_lvi = [%llu, %llu, %llu, %llu]\n", gfn_lv4i, gfn_lv3i, gfn_lv2i, gfn_lv1i);
+
+		gfn_lv1i %= 512;
+		gfn_lv2i %= 512;
+		gfn_lv3i %= 512;
+		if (gfn_lv4i >= 512) {
+			return -KVM_EFAULT;
+		}
+
+		// eptp is pml4
+		if (eptp[gfn_lv4i] == 0) {
+			continue;
+		}
+		pml3 = __va(eptp[gfn_lv4i] & PHYSICAL_PAGE_MASK);
+
+		if (pml3[gfn_lv3i] == 0) {
+			continue;
+		}
+		pml2 = __va(pml3[gfn_lv3i] & PHYSICAL_PAGE_MASK);
+
+		if (pml2[gfn_lv2i] == 0) {
+			continue;
+		}
+		pml1 = __va(pml2[gfn_lv2i] & PHYSICAL_PAGE_MASK);
+
+		pml1[gfn_lv1i] = 0;
+		printk(
+			KERN_DEBUG "vmx_unmap_ept_view: set EPT-L[%lu]|[%llu][%llu][%llu][%llu] to 0x%016llx\n",
+			eptp_idx, gfn_lv4i, gfn_lv3i, gfn_lv2i, gfn_lv1i, pml1[gfn_lv1i]
+		);
+	}
+
+	return res;
+}
+
+static long vmx_freeze_ept_mapping(struct kvm_vcpu *vcpu) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	vmx->ept_map_freeze = 1;
+	return 0;
+} 
+
+static long vmx_add_ept_access(
+	struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx,
+	unsigned long bts_id, unsigned long eptp_idx
+) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	size_t bts_size = sizeof(*vmx->ept_access_bitsets);
+	size_t bts_elem_size = sizeof((*vmx->ept_access_bitsets)[0]);
+	size_t bts_arr_size = bts_size / bts_elem_size;
+	size_t bts_arr_idx = eptp_idx / (bts_elem_size*8);
+	size_t bts_bitidx = eptp_idx % (bts_elem_size*8);
+	size_t bts_caller_arr_idx = caller_eptp_idx / (bts_elem_size*8);
+	size_t bts_caller_bitidx = caller_eptp_idx % (bts_elem_size*8);
+	u64 curr_eptp = vmcs_read64(EPT_POINTER);
+
+	if (vmx->eptp_list[caller_eptp_idx] != curr_eptp) {
+		return -KVM_EINVAL;
+	}
+
+	if (bts_id > vmx->ept_access_bitsets_len) {
+		return -KVM_EINVAL;
+	} else if (bts_id == vmx->ept_access_bitsets_len) {
+		if (vmx->eptp_list[eptp_idx] != curr_eptp) {
+			return -KVM_EPERM;
+		}
+
+		if (!vmx->ept_access_bitsets) {
+			vmx->ept_access_bitsets = kmalloc(bts_size, GFP_KERNEL_ACCOUNT);
+			vmx->ept_access_bitsets_cap = 1;
+		} else if (vmx->ept_access_bitsets_len >= vmx->ept_access_bitsets_cap) {
+			if (vmx->ept_access_bitsets_cap * 2 * bts_size / 2 / bts_size
+				== vmx->ept_access_bitsets_cap)
+			{
+				// overflow
+				return -KVM_EFAULT;
+			}
+			vmx->ept_access_bitsets_cap *= 2;
+			vmx->ept_access_bitsets = krealloc(
+				vmx->ept_access_bitsets,
+				vmx->ept_access_bitsets_cap * bts_size,
+				GFP_KERNEL_ACCOUNT
+			);
+		}
+
+		for (size_t i = 0; i < bts_arr_size; i++) {
+			vmx->ept_access_bitsets[vmx->ept_access_bitsets_len][i] = 0;
+		}
+		vmx->ept_access_bitsets_len += 1;
+	} else {
+		if (vmx->ept_access_bitsets[bts_id][bts_caller_arr_idx]
+				& (1ul << bts_caller_bitidx)
+			== 0)
+		{
+			return -KVM_EPERM;
+		}
+	}
+
+	vmx->ept_access_bitsets[bts_id][bts_arr_idx] |= 1ul << bts_bitidx;
+
+	return 0;
+}
+
+static long vmx_create_ept_access_set(struct kvm_vcpu *vcpu, unsigned long eptp_idx) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	long res;
+	res = vmx_add_ept_access(vcpu, vmx->ept_access_bitsets_len, eptp_idx);
+	if (res < 0) {
+		return res;
+	}
+	return vmx->ept_access_bitsets_len - 1;
+}
+
+static long vmx_set_chummy_allocator(struct kvm_vcpu *vcpu, unsigned long alloc_start,
+									 unsigned long alloc_end) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	gfn_t alloc_start_gfn, alloc_end_gfn;
+
+	if (vmx->chummy_init) {
+		return -KVM_EPERM;
+	}
+	if ((alloc_start & !PHYSICAL_PAGE_MASK) != 0 || alloc_start % PAGE_SIZE != 0) {
+		return -KVM_EFAULT;
+	}
+	if ((alloc_end & !PHYSICAL_PAGE_MASK) != 0 || alloc_end % PAGE_SIZE != 0) {
+		return -KVM_EFAULT;
+	}
+
+	alloc_start_gfn = gpa_to_gfn(alloc_start);
+	alloc_end_gfn = gpa_to_gfn(alloc_end);
+
+	vmx->chummy_init = true;
+	chummy_init(vmx->chummy, alloc_start_gfn, alloc_end_gfn);
+
+	return 0;
+}
+
+#define VMX_BTS_FOREACH_BITIDX(ept_access_bitsets, bts_id, arr_i, bitidx)                     \
+    for (size_t arr_i = 0; arr_i < VMFUNC_EPTP_ENTRIES / 64; arr_i++)                         \
+        for (u64 __elem = ept_access_bitsets[bts_id][arr_i],                                  \
+                      bitidx = __builtin_ctzll(ept_access_bitsets[bts_id][arr_i]);            \
+             __elem != 0; __elem &= ~((u64)1 << bitidx), bitidx = __builtin_ctzll(__elem))
+
+static long vmx_chummy_malloc(struct kvm_vcpu *vcpu, unsigned long num_pages,
+							  unsigned long flag) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	gfn_t guest_frn;
+	long res;
+	guest_frn = chummy_palloc_flagged(vmx->chummy, num_pages, &flag);
+	if (guest_frn == CHUMMY_FRAME_NULL) {
+		return -KVM_ENOMEM;
+	}
+
+	VMX_BTS_FOREACH_BITIDX(vmx->ept_access_bitsets, flag, arr_i, bitidx) {
+		size_t view_idx = arr_i * 64 + bitidx;
+		res = vmx_map_ept_view_nofreeze(vcpu, view_idx, gfn_to_gpa(guest_frn), gfn_to_gpa(guest_frn),
+										page_count, 0b1110111);
+		if (res != 0) { return res; }
+	}
+
+	return gfn_to_gpa(guest_addr);
+}
+static long vmx_chummy_free(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx,
+							unsigned long guest_ptr, unsigned long num_pages,
+							unsigned long flag) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	gfn_t guest_frn;
+	long res;
+	u64 curr_eptp = vmcs_read64(EPT_POINTER);
+	
+	size_t bts_elem_size = sizeof((*vmx->ept_access_bitsets)[0]);
+	size_t bts_caller_arr_idx = caller_eptp_idx / (bts_elem_size*8);
+	size_t bts_caller_bitidx = caller_eptp_idx % (bts_elem_size*8);
+
+	if (vmx->eptp_list[caller_eptp_idx] != curr_eptp) {
+		return -KVM_EINVAL;
+	}
+	if (vmx->ept_access_bitsets[flag][bts_caller_arr_idx] & (1ul << bts_caller_bitidx) == 0) {
+		return -KVM_EPERM;
+	}
+	if ((guest_ptr & !PHYSICAL_PAGE_MASK) != 0 || guest_ptr % PAGE_SIZE != 0) {
+		return -KVM_EFAULT;
+	}
+	guest_frn = gpa_to_gfn(guest_ptr);
+
+	res = chummy_pfree_flagged(vmx->chummy, guest_frn, num_pages, &flag);
+	if (res != 0) { return res; }
+
+	VMX_BTS_FOREACH_BITIDX(vmx->ept_access_bitsets, flag, arr_i, bitidx) {
+		size_t view_idx = arr_i * 64 + bitidx;
+		res = vmx_unmap_ept_view_nofreeze(vcpu, view_idx, guest_ptr, page_count);
+		if (res != 0) { return res; }
+	}
+
+	return res;
+}
+
 static struct kvm_x86_ops vmx_x86_ops __initdata = {
 	.name = KBUILD_MODNAME,
 
@@ -8552,7 +8810,14 @@ static struct kvm_x86_ops vmx_x86_ops __initdata = {
 
 	.vcpu_deliver_sipi_vector = kvm_vcpu_deliver_sipi_vector,
 
-	.map_ept_view = vmx_map_ept_view
+	.map_ept_view = vmx_map_ept_view,
+	.unmap_ept_view = vmx_unmap_ept_view,
+	.freeze_ept_mapping = vmx_freeze_ept_mapping,
+	.add_ept_access = vmx_add_ept_access,
+	.create_ept_access_set = vmx_create_ept_access_set,
+	.set_chummy_allocator = vmx_set_chummy_allocator,
+	.chummy_malloc = vmx_chummy_malloc,
+	.chummy_free = vmx_chummy_free,
 };
 
 static unsigned int vmx_handle_intel_pt_intr(void)
