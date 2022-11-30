@@ -15,6 +15,7 @@
 #include "vmx_ops.h"
 #include "../cpuid.h"
 #include "run_flags.h"
+#include "chummy-alloc.h"
 
 #define MSR_TYPE_R	1
 #define MSR_TYPE_W	2
@@ -377,6 +378,18 @@ struct vcpu_vmx {
 
 	/* EPT-pointer list with 512 elements */
 	hpa_t *eptp_list;
+
+	/* if set, ept-ranges cannot be mapped freely */
+	bool ept_map_freeze;
+
+	/* ept-view access bitsets */
+	u64 (*ept_access_bitsets)[VMFUNC_EPTP_ENTRIES / 64];
+	size_t ept_access_bitsets_len;
+	size_t ept_access_bitsets_cap;
+
+	/* buddy allocator for isolated allocations */
+	bool chummy_init;
+	chummy_alloc chummy;
 };
 
 struct kvm_vmx {
@@ -711,7 +724,7 @@ void free_eptp_list(hpa_t *eptp_list);
 
 static inline hpa_t *alloc_eptp_list(void)
 {
-	return alloc_eptp_list_cpu(raw_smp_processor_id(), GFP_KERNEL_ACCOUNT);
+	return alloc_eptp_list_cpu(raw_smp_processor_id(), GFP_KERNEL_ACCOUNT | __GFP_DMA32);
 }
 
 static inline bool vmx_has_waitpkg(struct vcpu_vmx *vmx)
