@@ -8569,7 +8569,7 @@ static long vmx_chummy_malloc(struct kvm_vcpu *vcpu, unsigned long num_pages,
 		if (res != 0) { return res; }
 	}
 
-	return gfn_to_gpa(guest_addr);
+	return gfn_to_gpa(guest_frn);
 }
 static long vmx_chummy_free(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx,
 							unsigned long guest_ptr, unsigned long num_pages,
