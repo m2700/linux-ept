@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stddef.h>
 #include <linux/kvm_types.h>
 
 #define chummy_frame_num_t gfn_t
