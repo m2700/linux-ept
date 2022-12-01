@@ -7355,7 +7355,7 @@ static void vmx_vcpu_free(struct kvm_vcpu *vcpu)
 
 	free_eptp_list(vmx->eptp_list);
 	kfree(vmx->ept_access_bitsets);
-	chummy_clear(vmx->chummy);
+	chummy_clear(&vmx->chummy);
 	if (enable_pml)
 		vmx_destroy_pml_buffer(vmx);
 	free_vpid(vmx->vpid);
@@ -7469,7 +7469,7 @@ static int vmx_vcpu_create(struct kvm_vcpu *vcpu)
 	vmx->ept_access_bitsets_len = 0;
 	vmx->ept_access_bitsets_cap = 0;
 
-	chummy_init = false;
+	vmx->chummy_init = false;
 
 	return 0;
 
@@ -8137,16 +8137,6 @@ static void vmx_vm_destroy(struct kvm *kvm)
 	free_pages((unsigned long)kvm_vmx->pid_table, vmx_get_pid_table_order(kvm));
 }
 
-static long vmx_map_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
-							unsigned long map_src, unsigned long map_dst,
-							unsigned long page_count, unsigned long flags) {
-	struct vcpu_vmx *vmx = to_vmx(vcpu);
-	if (vmx->ept_map_freeze) {
-		return -KVM_EPERM;
-	}
-	return vmx_map_ept_view_nofreeze(vcpu, eptp_idx, map_src, map_dst, page_count, flags);
-} 
-
 static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 									  unsigned long map_src, unsigned long map_dst,
 									  unsigned long page_count, unsigned long flags) {
@@ -8368,13 +8358,14 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 	#undef alloc_zeroed_page
 }
 
-static long vmx_unmap_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
-							   unsigned long map_dst, unsigned long page_count) {
+static long vmx_map_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
+							unsigned long map_src, unsigned long map_dst,
+							unsigned long page_count, unsigned long flags) {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 	if (vmx->ept_map_freeze) {
 		return -KVM_EPERM;
 	}
-	return vmx_unmap_ept_view_nofreeze(vcpu, eptp_idx, map_dst, page_count);
+	return vmx_map_ept_view_nofreeze(vcpu, eptp_idx, map_src, map_dst, page_count, flags);
 }
 
 static long vmx_unmap_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
@@ -8444,6 +8435,15 @@ static long vmx_unmap_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long ept
 	}
 
 	return res;
+}
+
+static long vmx_unmap_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
+							   unsigned long map_dst, unsigned long page_count) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	if (vmx->ept_map_freeze) {
+		return -KVM_EPERM;
+	}
+	return vmx_unmap_ept_view_nofreeze(vcpu, eptp_idx, map_dst, page_count);
 }
 
 static long vmx_freeze_ept_mapping(struct kvm_vcpu *vcpu) {
