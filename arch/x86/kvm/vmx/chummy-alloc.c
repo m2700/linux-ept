@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include "chummy-alloc.h"
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
