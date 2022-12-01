@@ -289,6 +289,8 @@ void chummy_init(chummy_alloc *chummy, chummy_frame_num_t pstart,
 	chummy->pend = pend;
 	block_state_init(&chummy->root, pend - pstart flag_arg(NULL));
 }
+EXPORT_SYMBOL_GPL(chummy_init);
+
 void chummy_clear(chummy_alloc *chummy)
 {
 	if (!is_ocp_leaf(chummy->root)) {
@@ -298,6 +300,7 @@ void chummy_clear(chummy_alloc *chummy)
 	block_state_init(&chummy->root,
 			 chummy->pend - chummy->pstart flag_arg(NULL));
 }
+EXPORT_SYMBOL_GPL(chummy_clear);
 
 #ifdef chummy_flag_t
 #define chummy_palloc chummy_palloc_flagged
@@ -316,6 +319,8 @@ chummy_palloc(chummy_alloc *chummy,
 				  chummy->pend - chummy->pstart,
 				  page_num flag_arg(flag));
 }
+EXPORT_SYMBOL_GPL(chummy_palloc);
+
 int chummy_pfree(chummy_alloc *chummy, chummy_frame_num_t pstart,
 		 chummy_frame_num_t page_num flag_arg(chummy_flag_t const *flag))
 {
@@ -331,6 +336,7 @@ int chummy_pfree(chummy_alloc *chummy, chummy_frame_num_t pstart,
 				 pstart + page_num -
 					 chummy->pstart flag_arg(flag));
 }
+EXPORT_SYMBOL_GPL(chummy_pfree);
 
 #ifdef chummy_flag_t
 
@@ -345,6 +351,8 @@ chummy_frame_num_t chummy_palloc(chummy_alloc *chummy,
 
 	return chummy_palloc_flagged(chummy, page_num, &flag);
 }
+EXPORT_SYMBOL_GPL(chummy_palloc);
+
 int chummy_pfree(chummy_alloc *chummy, chummy_frame_num_t pstart,
 		 chummy_frame_num_t page_num)
 {
@@ -353,5 +361,6 @@ int chummy_pfree(chummy_alloc *chummy, chummy_frame_num_t pstart,
 
 	return chummy_pfree_flagged(chummy, pstart, page_num, &flag);
 }
+EXPORT_SYMBOL_GPL(chummy_pfree);
 
 #endif
