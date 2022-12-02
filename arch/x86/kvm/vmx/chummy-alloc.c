@@ -4,6 +4,9 @@
 
 #include "chummy-alloc.h"
 
+#define malloc(a) kmalloc(a, GFP_KERNEL_ACCOUNT)
+#define free(a) kfree(a)
+
 #define MIN(a, b) ((a) <= (b) ? (a) : (b))
 #define MAX(a, b) ((a) >= (b) ? (a) : (b))
 
