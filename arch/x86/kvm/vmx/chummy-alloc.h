@@ -2,6 +2,8 @@
 
 #include <linux/kvm_types.h>
 
+#define CHUMMY_ASSERT
+
 #define chummy_frame_num_t gfn_t
 #define chummy_flag_t size_t
 
@@ -60,6 +62,12 @@ int chummy_pfree_flagged(chummy_alloc *chummy, chummy_frame_num_t pstart,
 #endif
 
 #ifdef CHUMMY_INTERNAL
+
+#ifdef CHUMMY_ASSERT
+#define assert(cond) if (!(cond)) { printk(KERN_DEBUG "Assert Error: " #cond "\n"); }
+#else // CHUMMY_ASSERT
+#define assert(cond)
+#endif // CHUMMY_ASSERT
 
 /// child0 is never smaller than child1
 #define child0_size(block_psize) (((block_psize) + 1) / 2)
