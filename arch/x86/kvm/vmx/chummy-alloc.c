@@ -1,9 +1,9 @@
 #define CHUMMY_INTERNAL
 
-#include <assert.h>
-#include "chummy-alloc.h"
 #include <stdlib.h>
 #include <string.h>
+
+#include "chummy-alloc.h"
 
 #define MIN(a, b) ((a) <= (b) ? (a) : (b))
 #define MAX(a, b) ((a) >= (b) ? (a) : (b))
