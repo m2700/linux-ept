@@ -1,6 +1,6 @@
 #define CHUMMY_INTERNAL
 
-#include <string.h>
+#include <linux/string.h>
 
 #include "chummy-alloc.h"
 
