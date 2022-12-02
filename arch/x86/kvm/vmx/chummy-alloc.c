@@ -1,6 +1,5 @@
 #define CHUMMY_INTERNAL
 
-#include <stdlib.h>
 #include <string.h>
 
 #include "chummy-alloc.h"
