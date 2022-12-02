@@ -1,6 +1,7 @@
 #pragma once
 
 #include <linux/kvm_types.h>
+#include <linux/kvm_para.h>
 
 #define CHUMMY_ASSERT
 
