@@ -8224,6 +8224,18 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 	if ((map_dst & !PHYSICAL_PAGE_MASK) != 0 || map_dst % PAGE_SIZE != 0) {
 		return -KVM_EFAULT;
 	}
+
+	if (((map_src + page_count * PAGE_SIZE) & !PHYSICAL_PAGE_MASK) != 0
+		|| (map_src + page_count * PAGE_SIZE) < map_src)
+	{
+		return -KVM_EFAULT;
+	}
+	if (((map_dst + page_count * PAGE_SIZE) & !PHYSICAL_PAGE_MASK) != 0
+		|| (map_dst + page_count * PAGE_SIZE) < map_dst)
+	{
+		return -KVM_EFAULT;
+	}
+
 	if (eptp_idx >= VMFUNC_EPTP_ENTRIES) {
 		return -KVM_EINVAL;
 	}
@@ -8378,6 +8390,11 @@ static long vmx_unmap_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long ept
 	if ((map_dst & !PHYSICAL_PAGE_MASK) != 0 || map_dst % PAGE_SIZE != 0) {
 		return -KVM_EFAULT;
 	}
+	if (((map_dst + page_count * PAGE_SIZE) & !PHYSICAL_PAGE_MASK) != 0
+		|| (map_dst + page_count * PAGE_SIZE) < map_dst)
+	{
+		return -KVM_EFAULT;
+	}
 	if (eptp_idx >= VMFUNC_EPTP_ENTRIES) {
 		return -KVM_EINVAL;
 	}
@@ -8466,6 +8483,13 @@ static long vmx_add_ept_access(
 	size_t bts_caller_bitidx = caller_eptp_idx % (bts_elem_size*8);
 	u64 curr_eptp = vmcs_read64(EPT_POINTER);
 
+	if (eptp_idx >= VMFUNC_EPTP_ENTRIES) {
+		return -KVM_EINVAL;
+	}
+	if (caller_eptp_idx >= VMFUNC_EPTP_ENTRIES) {
+		return -KVM_EINVAL;
+	}
+
 	if (vmx->eptp_list[caller_eptp_idx] != curr_eptp) {
 		return -KVM_EINVAL;
 	}
@@ -8536,6 +8560,9 @@ static long vmx_set_chummy_allocator(struct kvm_vcpu *vcpu, unsigned long alloc_
 	if ((alloc_end & !PHYSICAL_PAGE_MASK) != 0 || alloc_end % PAGE_SIZE != 0) {
 		return -KVM_EFAULT;
 	}
+	if (alloc_start >= alloc_end) {
+		return -KVM_EINVAL;
+	}
 
 	alloc_start_gfn = gpa_to_gfn(alloc_start);
 	alloc_end_gfn = gpa_to_gfn(alloc_end);
@@ -8557,6 +8584,11 @@ static long vmx_chummy_malloc(struct kvm_vcpu *vcpu, unsigned long num_pages,
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 	gfn_t guest_frn;
 	long res;
+
+	if (flag >= vmx->ept_access_bitsets_len) {
+		return -KVM_EINVAL;
+	}
+
 	guest_frn = chummy_palloc_flagged(&vmx->chummy, num_pages, &flag);
 	if (guest_frn == CHUMMY_FRAME_NULL) {
 		return -KVM_ENOMEM;
@@ -8583,6 +8615,12 @@ static long vmx_chummy_free(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx
 	size_t bts_caller_arr_idx = caller_eptp_idx / (bts_elem_size*8);
 	size_t bts_caller_bitidx = caller_eptp_idx % (bts_elem_size*8);
 
+	if (flag >= vmx->ept_access_bitsets_len) {
+		return -KVM_EINVAL;
+	}
+	if (caller_eptp_idx >= VMFUNC_EPTP_ENTRIES) {
+		return -KVM_EINVAL;
+	}
 	if (vmx->eptp_list[caller_eptp_idx] != curr_eptp) {
 		return -KVM_EINVAL;
 	}
