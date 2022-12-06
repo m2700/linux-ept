@@ -9679,7 +9679,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 	case KVM_HC_UNMAP_EPT_VIEW:
 		printk(KERN_DEBUG "KVM_HC_UNMAP_EPT_VIEW: called\n");
 		if (kvm_x86_ops.unmap_ept_view) {
-			ret = kvm_x86_ops.unmap_ept_view(vcpu, a0, a1, a2, a3, a4);
+			ret = kvm_x86_ops.unmap_ept_view(vcpu, a0, a1, a2);
 		} else {
 			ret = -KVM_ENOSYS;
 		}
@@ -9687,7 +9687,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 	case KVM_HC_FREEZE_EPT_MAPPING:
 		printk(KERN_DEBUG "KVM_HC_FREEZE_EPT_MAPPING: called\n");
 		if (kvm_x86_ops.freeze_ept_mapping) {
-			ret = kvm_x86_ops.freeze_ept_mapping(vcpu, a0, a1, a2, a3, a4);
+			ret = kvm_x86_ops.freeze_ept_mapping(vcpu);
 		} else {
 			ret = -KVM_ENOSYS;
 		}
@@ -9695,7 +9695,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 	case KVM_HC_ADD_EPT_ACCESS:
 		printk(KERN_DEBUG "KVM_HC_ADD_EPT_ACCESS: called\n");
 		if (kvm_x86_ops.add_ept_access) {
-			ret = kvm_x86_ops.add_ept_access(vcpu, a0, a1, a2, a3, a4);
+			ret = kvm_x86_ops.add_ept_access(vcpu, a0, a1, a2);
 		} else {
 			ret = -KVM_ENOSYS;
 		}
@@ -9703,7 +9703,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 	case KVM_HC_CREATE_EPT_ACCESS_SET:
 		printk(KERN_DEBUG "KVM_HC_CREATE_EPT_ACCESS_SET: called\n");
 		if (kvm_x86_ops.create_ept_access_set) {
-			ret = kvm_x86_ops.create_ept_access_set(vcpu, a0, a1, a2, a3, a4);
+			ret = kvm_x86_ops.create_ept_access_set(vcpu, a0);
 		} else {
 			ret = -KVM_ENOSYS;
 		}
@@ -9711,7 +9711,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 	case KVM_HC_SET_CHUMMY_ALLOCATOR:
 		printk(KERN_DEBUG "KVM_HC_SET_CHUMMY_ALLOCATOR: called\n");
 		if (kvm_x86_ops.set_chummy_allocator) {
-			ret = kvm_x86_ops.set_chummy_allocator(vcpu, a0, a1, a2, a3, a4);
+			ret = kvm_x86_ops.set_chummy_allocator(vcpu, a0, a1);
 		} else {
 			ret = -KVM_ENOSYS;
 		}
@@ -9719,7 +9719,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 	case KVM_HC_CHUMMY_MALLOC:
 		printk(KERN_DEBUG "KVM_HC_CHUMMY_MALLOC: called\n");
 		if (kvm_x86_ops.chummy_malloc) {
-			ret = kvm_x86_ops.chummy_malloc(vcpu, a0, a1, a2, a3, a4);
+			ret = kvm_x86_ops.chummy_malloc(vcpu, a0, a1);
 		} else {
 			ret = -KVM_ENOSYS;
 		}
@@ -9727,7 +9727,7 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 	case KVM_HC_CHUMMY_FREE:
 		printk(KERN_DEBUG "KVM_HC_CHUMMY_FREE: called\n");
 		if (kvm_x86_ops.chummy_free) {
-			ret = kvm_x86_ops.chummy_free(vcpu, a0, a1, a2, a3, a4);
+			ret = kvm_x86_ops.chummy_free(vcpu, a0, a1, a2, a3);
 		} else {
 			ret = -KVM_ENOSYS;
 		}
