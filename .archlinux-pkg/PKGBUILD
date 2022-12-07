@@ -21,7 +21,7 @@ source=(
   # "$_srcname::git+https://github.com/m2700/linux-ept.git"
   config         # the main kernel config file
 )
-sha256sums=('a01c8ef3463c239f868fa679006bc591b1a088274dde8c9c162440dd0547ccad')
+sha256sums=('f66b82f4a99c99dedb128a027c7e23a70c2853984c44ecbd79d16bd76f1f5bac')
 
 export KBUILD_BUILD_HOST=archlinux
 export KBUILD_BUILD_USER=$pkgbase
