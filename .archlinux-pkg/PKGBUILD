@@ -28,7 +28,7 @@ export KBUILD_BUILD_USER=$pkgbase
 export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
 
 pkgver() {
-  cd "$(realpath $_srcname)" # to make sure GIT_WORK_TREE is set correctly in Github-Action
+  cd $_srcname
 
   echo "$(make kernelversion)-$(git rev-parse --short HEAD)" | sed 's/-/./g'
 }
@@ -63,7 +63,7 @@ prepare() {
 
 build() {
   cd $_srcname
-  make htmldocs all
+  make htmldocs mrproper all
 }
 
 _package() {
@@ -195,7 +195,22 @@ _package-docs() {
   ln -sr "$builddir/Documentation" "$pkgdir/usr/share/doc/$pkgbase"
 }
 
-pkgname=("$pkgbase" "$pkgbase-headers" "$pkgbase-docs")
+_package-api-headers() {
+  pkgdesc='Kernel headers sanitized for use in userspace'
+  arch=(any)
+  makedepends=(rsync)
+  provides=(linux-api-headers)
+  conflicts=(linux-api-headers)
+
+  cd $_srcname
+
+  make INSTALL_HDR_PATH="$pkgdir/usr" headers_install
+
+  # use headers from libdrm
+  rm -r "$pkgdir/usr/include/drm"
+}
+
+pkgname=("$pkgbase" "$pkgbase-headers" "$pkgbase-docs" "$pkgbase-api-headers")
 for _p in "${pkgname[@]}"; do
   eval "package_$_p() {
     $(declare -f "_package${_p#$pkgbase}")
