@@ -13,6 +13,7 @@ jobs:
       - name: Install Build Dependencies
         run: pacman -Sy --noconfirm base-devel bc libelf pahole cpio perl tar xz xmlto
           python-sphinx python-sphinx_rtd_theme graphviz imagemagick texlive-latexextra git
+          rsync
 
       - name: Create Makepkg User
         run: useradd makepkg
