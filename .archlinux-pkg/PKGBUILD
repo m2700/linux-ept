@@ -4,7 +4,7 @@
 # Contributor: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
 
 pkgbase=linux-ept
-pkgver=6.1.0.rc4.
+pkgver=6.1.0.rc8.6fbd08cea6df
 pkgrel=1
 pkgdesc='Linux (Git)'
 url="https://www.kernel.org"
@@ -14,6 +14,7 @@ makedepends=(
   bc libelf pahole cpio perl tar xz
   xmlto python-sphinx python-sphinx_rtd_theme graphviz imagemagick texlive-latexextra
   git
+  rsync # for api-headers
 )
 options=('!strip')
 _srcname=linux-ept
@@ -30,7 +31,7 @@ export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EP
 pkgver() {
   cd $_srcname
 
-  echo "$(make kernelversion)-$(git rev-parse --short HEAD)" | sed 's/-/./g'
+  echo "$(make kernelversion)-$(git rev-list HEAD --count)" | sed 's/-/./g'
 }
 
 prepare() {
@@ -198,8 +199,7 @@ _package-docs() {
 _package-api-headers() {
   pkgdesc='Kernel headers sanitized for use in userspace'
   arch=(any)
-  makedepends=(rsync)
-  provides=(linux-api-headers)
+  provides=(linux-api-headers=$pkgver)
   conflicts=(linux-api-headers)
 
   cd $_srcname
