@@ -4,7 +4,7 @@
 # Contributor: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
 
 pkgbase=linux-ept
-pkgver=6.1.0.rc8.6fbd08cea6df
+pkgver=6.1.0.rc8.1138681
 pkgrel=1
 pkgdesc='Linux (Git)'
 url="https://www.kernel.org"
@@ -56,7 +56,7 @@ prepare() {
   echo "Setting config..."
   cp -up $srcdir/config .config
   make olddefconfig
-  diff -u ../config .config || :
+  diff -u $srcdir/config .config || :
 
   make -s kernelrelease > version
   echo "Prepared $pkgbase version $(<version)"
