@@ -22,7 +22,7 @@ jobs:
         run: chmod -cR og+rw .
       
       - name: Debug
-        run: ls -al .archlinux-pkg
+        run: ls -al .
 
       # - name: Build Package
       #   run: cd .archlinux-pkg && su -c 'makepkg' makepkg
