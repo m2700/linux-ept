@@ -10,10 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # - name: Install Build Dependencies
-      #   run: pacman -Sy --noconfirm base-devel bc libelf pahole cpio perl tar xz xmlto
-      #     python-sphinx python-sphinx_rtd_theme graphviz imagemagick texlive-latexextra git
-      #     rsync
+      - name: Install Build Dependencies
+        run: pacman -Sy --noconfirm base-devel bc libelf pahole cpio perl tar xz xmlto
+          python-sphinx python-sphinx_rtd_theme graphviz imagemagick texlive-latexextra git
+          rsync
 
       - name: Create Makepkg User
         run: useradd makepkg
@@ -24,8 +24,8 @@ jobs:
       - name: Debug
         run: ls -al .
 
-      # - name: Build Package
-      #   run: cd .archlinux-pkg && su -c 'makepkg' makepkg
+      - name: Build Package
+        run: cd .archlinux-pkg && sudo -u makepkg makepkg
       
       - name: Upload Package
         uses: actions/upload-artifact@v3
