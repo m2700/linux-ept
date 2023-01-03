@@ -102,6 +102,8 @@ modules.order
 !.gitignore
 !.mailmap
 !.rustfmt.toml
+!/.archlinux-pkg/
+!/.github/
 
 #
 # Generated include files
