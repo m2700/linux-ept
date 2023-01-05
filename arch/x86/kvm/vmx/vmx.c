@@ -5716,6 +5716,7 @@ static int handle_ept_violation(struct kvm_vcpu *vcpu)
 
 	gpa = vmcs_read64(GUEST_PHYSICAL_ADDRESS);
 	printk(KERN_DEBUG "handle_ept_violation: gpa = 0x%016llx\n", gpa);
+	printk(KERN_DEBUG "handle_ept_violation: rip = 0x%016lx\n", kvm_rip_read(vcpu));
 	trace_kvm_page_fault(vcpu, gpa, exit_qualification);
 
 	/* Is it a read fault? */
