@@ -8217,8 +8217,7 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 	printk(KERN_DEBUG "vmx_map_ept_view: flags = 0x%lx\n", flags);
 
 	printk(KERN_DEBUG "vmx_map_ept_view: cpu_has_secondary_exec_ctrls() = %u\n", cpu_has_secondary_exec_ctrls());
-	printk(KERN_DEBUG "vmx_map_ept_view: EPT SECONDARY_VM_EXEC_CONTROL = %u\n", vmcs_read32(SECONDARY_VM_EXEC_CONTROL));
-	printk(KERN_DEBUG "vmx_map_ept_view: SECONDARY_EXEC_ENABLE_EPT = %lu\n", SECONDARY_EXEC_ENABLE_EPT);
+	printk(KERN_DEBUG "vmx_map_ept_view: EPT SECONDARY_VM_EXEC_CONTROL = 0x%08x\n", vmcs_read32(SECONDARY_VM_EXEC_CONTROL));
 
 	printk(KERN_DEBUG "vmx_map_ept_view: EPT-list pointer = 0x%016llx\n", vmcs_read64(EPTP_LIST_ADDRESS));
 	printk(KERN_DEBUG "vmx_map_ept_view: VM_FUNCTION_CONTROL = 0x%llx\n", vmcs_read64(VM_FUNCTION_CONTROL));
