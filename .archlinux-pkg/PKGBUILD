@@ -210,7 +210,7 @@ _package-api-headers() {
   rm -r "$pkgdir/usr/include/drm"
 }
 
-pkgname=("$pkgbase" "$pkgbase-headers" "$pkgbase-docs" "$pkgbase-api-headers")
+pkgname=("$pkgbase" "$pkgbase-headers" "$pkgbase-api-headers") # "$pkgbase-docs"
 for _p in "${pkgname[@]}"; do
   eval "package_$_p() {
     $(declare -f "_package${_p#$pkgbase}")
