@@ -64,7 +64,7 @@ prepare() {
 
 build() {
   cd $_srcname
-  make htmldocs mrproper all
+  make mrproper all # htmldocs
 }
 
 _package() {
