@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Install Git
-        run: pacman -Sy git
+        run: pacman -Sy --noconfirm git
 
       - uses: actions/checkout@v3
 
