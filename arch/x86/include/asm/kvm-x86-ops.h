@@ -132,6 +132,13 @@ KVM_X86_OP(complete_emulated_msr)
 KVM_X86_OP(vcpu_deliver_sipi_vector)
 KVM_X86_OP_OPTIONAL_RET0(vcpu_get_apicv_inhibit_reasons);
 KVM_X86_OP_OPTIONAL(map_ept_view)
+KVM_X86_OP_OPTIONAL(unmap_ept_view)
+KVM_X86_OP_OPTIONAL(freeze_ept_mapping)
+KVM_X86_OP_OPTIONAL(add_ept_access)
+KVM_X86_OP_OPTIONAL(create_ept_access_set)
+KVM_X86_OP_OPTIONAL(set_chummy_allocator)
+KVM_X86_OP_OPTIONAL(chummy_malloc)
+KVM_X86_OP_OPTIONAL(chummy_free)
 
 #undef KVM_X86_OP
 #undef KVM_X86_OP_OPTIONAL
