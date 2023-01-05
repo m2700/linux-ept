@@ -6,13 +6,13 @@
 pkgbase=linux-ept
 pkgver=6.1.0.rc8.1138681
 pkgrel=1
-pkgdesc='Linux (Git)'
+pkgdesc='Linux-Ept (Git)'
 url="https://www.kernel.org"
 arch=(x86_64)
 license=(GPL2)
 makedepends=(
   bc libelf pahole cpio perl tar xz
-  xmlto python-sphinx python-sphinx_rtd_theme graphviz imagemagick texlive-latexextra
+  xmlto 'python-sphinx<6.0.0' python-sphinx_rtd_theme graphviz imagemagick texlive-latexextra
   git
   rsync # for api-headers
 )
@@ -20,9 +20,9 @@ options=('!strip')
 _srcname=linux-ept
 source=(
   # "$_srcname::git+https://github.com/m2700/linux-ept.git"
-  config         # the main kernel config file
+  "https://raw.githubusercontent.com/archlinux/svntogit-packages/packages/linux/trunk/config"         # the main kernel config file
 )
-sha256sums=('f66b82f4a99c99dedb128a027c7e23a70c2853984c44ecbd79d16bd76f1f5bac')
+sha256sums=('SKIP')
 
 export KBUILD_BUILD_HOST=archlinux
 export KBUILD_BUILD_USER=$pkgbase
@@ -54,7 +54,7 @@ prepare() {
   done
 
   echo "Setting config..."
-  cp -up $srcdir/config .config
+  cp -up $(realpath $srcdir/config) .config
   make olddefconfig
   diff -u $srcdir/config .config || :
 
