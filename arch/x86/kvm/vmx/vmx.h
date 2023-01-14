@@ -382,6 +382,9 @@ struct vcpu_vmx {
 	/* if set, ept-ranges cannot be mapped freely */
 	bool ept_map_freeze;
 
+	/* Check if the caller_eptp_idx matches the current EPTP-Index for some hypercalls */
+	bool use_vmcs_eptp_idx;
+
 	/* ept-view access bitsets */
 	u64 (*ept_access_bitsets)[VMFUNC_EPTP_ENTRIES / 64];
 	size_t ept_access_bitsets_len;
