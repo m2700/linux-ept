@@ -8560,7 +8560,6 @@ static long vmx_add_ept_access(
 	}
 
 	if (vmx->eptp_list[caller_eptp_idx] != curr_eptp) {
-		caller_eptp_idx = vmcs_read16();
 		return -KVM_EINVAL;
 	}
 
