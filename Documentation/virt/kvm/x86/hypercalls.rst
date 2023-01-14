@@ -264,3 +264,13 @@ must also set up an MSR filter to process writes to MSR_KVM_MIGRATION_CONTROL.
 - a1: pointer to free
 - a2: number of pages to free
 - a3: access-bitset index
+
+17. KVM_HC_SET_USE_VMCS_EPTP_IDX
+----------------------
+:Architecture: x86
+:Status: active
+:Purpose: Set if KVM should use the VMCS field EPTP_LIST_INDEX instead of
+          the caller_eptp_idx of some hypercalls.
+
+- a0: If non-0, all hypercalls will use the VMCS field EPTP_LIST_INDEX and
+      ignore the caller_eptp_idx argument
