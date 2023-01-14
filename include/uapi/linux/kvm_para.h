@@ -39,6 +39,7 @@
 #define KVM_HC_SET_CHUMMY_ALLOCATOR	105
 #define KVM_HC_CHUMMY_MALLOC		106
 #define KVM_HC_CHUMMY_FREE			107
+#define KVM_HC_SET_USE_VMCS_EPTP_IDX	108
 
 /*
  * hypercalls use architecture specific

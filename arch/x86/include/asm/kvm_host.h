@@ -1762,6 +1762,7 @@ struct kvm_x86_ops {
 	long (*chummy_free)(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx,
 						unsigned long guest_ptr, unsigned long num_pages,
 						unsigned long flag);
+	long (*set_use_vmcs_eptp_idx)(struct kvm_vcpu *vcpu, unsigned long use_vmcs_eptp_idx)
 };
 
 struct kvm_x86_nested_ops {

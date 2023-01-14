@@ -7545,6 +7545,7 @@ static int vmx_vcpu_create(struct kvm_vcpu *vcpu)
 			   __pa(&vmx->pi_desc) | PID_TABLE_ENTRY_VALID);
 	
 	vmx->ept_map_freeze = false;
+	vmx->use_vmcs_eptp_idx = false;
 	vmx->eptp_list = alloc_eptp_list();
 	if (!vmx->eptp_list) {
 		err = -ENOMEM;
@@ -8531,7 +8532,7 @@ static long vmx_freeze_ept_mapping(struct kvm_vcpu *vcpu) {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 	vmx->ept_map_freeze = 1;
 	return 0;
-} 
+}
 
 static long vmx_add_ept_access(
 	struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx,
@@ -8547,6 +8548,10 @@ static long vmx_add_ept_access(
 	size_t bts_caller_bitidx = caller_eptp_idx % (bts_elem_size*8);
 	u64 curr_eptp = vmcs_read64(EPT_POINTER);
 
+	if (vmx->use_vmcs_eptp_idx) {
+		caller_eptp_idx = vmcs_read16(EPTP_LIST_INDEX);
+	}
+
 	if (eptp_idx >= VMFUNC_EPTP_ENTRIES) {
 		return -KVM_EINVAL;
 	}
@@ -8555,6 +8560,7 @@ static long vmx_add_ept_access(
 	}
 
 	if (vmx->eptp_list[caller_eptp_idx] != curr_eptp) {
+		caller_eptp_idx = vmcs_read16();
 		return -KVM_EINVAL;
 	}
 
@@ -8679,6 +8685,10 @@ static long vmx_chummy_free(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx
 	size_t bts_caller_arr_idx = caller_eptp_idx / (bts_elem_size*8);
 	size_t bts_caller_bitidx = caller_eptp_idx % (bts_elem_size*8);
 
+	if (vmx->use_vmcs_eptp_idx) {
+		caller_eptp_idx = vmcs_read16(EPTP_LIST_INDEX);
+	}
+
 	if (flag >= vmx->ept_access_bitsets_len) {
 		return -KVM_EINVAL;
 	}
@@ -8706,6 +8716,12 @@ static long vmx_chummy_free(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx
 	}
 
 	return res;
+}
+
+static long vmx_set_use_vmcs_eptp_idx(struct kvm_vcpu *vcpu, unsigned long use_vmcs_eptp_idx) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	vmx->use_vmcs_eptp_idx = use_vmcs_eptp_idx != 0;
+	return 0;
 }
 
 static struct kvm_x86_ops vmx_x86_ops __initdata = {
@@ -8856,6 +8872,7 @@ static struct kvm_x86_ops vmx_x86_ops __initdata = {
 	.set_chummy_allocator = vmx_set_chummy_allocator,
 	.chummy_malloc = vmx_chummy_malloc,
 	.chummy_free = vmx_chummy_free,
+	.set_use_vmcs_eptp_idx = vmx_set_use_vmcs_eptp_idx,
 };
 
 static unsigned int vmx_handle_intel_pt_intr(void)

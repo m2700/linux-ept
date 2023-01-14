@@ -9873,6 +9873,14 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 			ret = -KVM_ENOSYS;
 		}
 		break;
+	case KVM_HC_SET_USE_VMCS_EPTP_IDX
+		printk(KERN_DEBUG "KVM_HC_SET_USE_VMCS_EPTP_IDX: called\n");
+		if (kvm_x86_ops.set_use_vmcs_eptp_idx) {
+			ret = kvm_x86_ops.set_use_vmcs_eptp_idx(vcpu, a0);
+		} else {
+			ret = -KVM_ENOSYS;
+		}
+		break;
 	default:
 		ret = -KVM_ENOSYS;
 		break;
