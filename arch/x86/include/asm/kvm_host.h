@@ -1727,6 +1727,8 @@ struct kvm_x86_ops {
 						unsigned long guest_ptr, unsigned long num_pages,
 						unsigned long flag);
 	long (*set_use_vmcs_eptp_idx)(struct kvm_vcpu *vcpu, unsigned long use_vmcs_eptp_idx);
+	long (*freeze_ept_access_ids)(struct kvm_vcpu *vcpu);
+	long (*dedup_ept_access_id)(struct kvm_vcpu *vcpu, unsigned long bts_id);
 };
 
 struct kvm_x86_nested_ops {

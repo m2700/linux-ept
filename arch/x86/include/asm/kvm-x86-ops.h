@@ -140,6 +140,8 @@ KVM_X86_OP_OPTIONAL(set_chummy_allocator)
 KVM_X86_OP_OPTIONAL(chummy_malloc)
 KVM_X86_OP_OPTIONAL(chummy_free)
 KVM_X86_OP_OPTIONAL(set_use_vmcs_eptp_idx)
+KVM_X86_OP_OPTIONAL(freeze_ept_access_ids)
+KVM_X86_OP_OPTIONAL(dedup_ept_access_id)
 
 #undef KVM_X86_OP
 #undef KVM_X86_OP_OPTIONAL
