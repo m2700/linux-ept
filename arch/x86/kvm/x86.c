@@ -9881,6 +9881,22 @@ int kvm_emulate_hypercall(struct kvm_vcpu *vcpu)
 			ret = -KVM_ENOSYS;
 		}
 		break;
+	case KVM_HC_FREEZE_EPT_ACCESS_IDS:
+		printk(KERN_DEBUG "KVM_HC_FREEZE_EPT_ACCESS_IDS: called\n");
+		if (kvm_x86_ops.freeze_ept_access_ids) {
+			ret = kvm_x86_ops.freeze_ept_access_ids(vcpu);
+		} else {
+			ret = -KVM_ENOSYS;
+		}
+		break;
+	case KVM_HC_DEDUP_EPT_ACCESS_ID:
+		printk(KERN_DEBUG "KVM_HC_DEDUP_EPT_ACCESS_ID: called\n");
+		if (kvm_x86_ops.dedup_ept_access_id) {
+			ret = kvm_x86_ops.dedup_ept_access_id(vcpu, a0);
+		} else {
+			ret = -KVM_ENOSYS;
+		}
+		break;
 	default:
 		ret = -KVM_ENOSYS;
 		break;

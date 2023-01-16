@@ -274,3 +274,19 @@ must also set up an MSR filter to process writes to MSR_KVM_MIGRATION_CONTROL.
 
 - a0: If non-0, all hypercalls will use the VMCS field EPTP_LIST_INDEX and
       ignore the caller_eptp_idx argument
+
+18. KVM_HC_FREEZE_EPT_ACCESS_IDS
+----------------------
+:Architecture: x86
+:Status: active
+:Purpose: After this operation, all existing EPT access sets are read only.
+
+19. KVM_HC_DEDUP_EPT_ACCESS_ID
+----------------------
+:Architecture: x86
+:Status: active
+:Purpose: Find a frozen duplicate of the given newest EPT access set and return it.
+          If no duplicate is found, the given id is returned.
+          If a duplicate is found, it's id is returned and the given id removed.
+
+- a0: Id of newest created EPT access set.

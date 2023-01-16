@@ -387,6 +387,7 @@ struct vcpu_vmx {
 
 	/* ept-view access bitsets */
 	u64 (*ept_access_bitsets)[VMFUNC_EPTP_ENTRIES / 64];
+	size_t ept_access_bitsets_freeze_len;
 	size_t ept_access_bitsets_len;
 	size_t ept_access_bitsets_cap;
 
