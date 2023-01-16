@@ -7469,6 +7469,7 @@ static int vmx_vcpu_create(struct kvm_vcpu *vcpu)
 	}
 
 	vmx->ept_access_bitsets = NULL;
+	vmx->ept_access_bitsets_freeze_len = 0;
 	vmx->ept_access_bitsets_len = 0;
 	vmx->ept_access_bitsets_cap = 0;
 
@@ -8502,6 +8503,8 @@ static long vmx_add_ept_access(
 
 	if (bts_id > vmx->ept_access_bitsets_len) {
 		return -KVM_EINVAL;
+	} else if (bts_id < vmx->ept_access_bitsets_freeze_len) {
+		return -KVM_EPERM;
 	} else if (bts_id == vmx->ept_access_bitsets_len) {
 		if (vmx->eptp_list[eptp_idx] != curr_eptp) {
 			return -KVM_EPERM;
@@ -8660,6 +8663,38 @@ static long vmx_set_use_vmcs_eptp_idx(struct kvm_vcpu *vcpu, unsigned long use_v
 	return 0;
 }
 
+static long vmx_freeze_ept_access_ids(struct kvm_vcpu *vcpu) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	vmx->ept_access_bitsets_freeze_len = vmx->ept_access_bitsets_len;
+	return 0;
+}
+
+static long vmx_dedup_ept_access_id(struct kvm_vcpu *vcpu, unsigned long bts_id) {
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	size_t bts_size = sizeof(*vmx->ept_access_bitsets);
+	size_t bts_elem_size = sizeof((*vmx->ept_access_bitsets)[0]);
+	size_t bts_arr_size = bts_size / bts_elem_size;
+
+	if (vmx->ept_access_bitsets_len == 0 || bts_id + 1 != vmx->ept_access_bitsets_len) {
+		return -KVM_EINVAL;
+	} else if (bts_id < vmx->ept_access_bitsets_freeze_len) {
+		return -KVM_EPERM;
+	}
+
+	for (size_t frz_bts_id = 0; frz_bts_id < vmx->ept_access_bitsets_freeze_len; frz_bts_id++) {
+		for (size_t i = 0; i < bts_arr_size; i++) {
+			if (vmx->ept_access_bitsets[bts_id][i] != vmx->ept_access_bitsets[frz_bts_id][i]) {
+				goto end_frz_id_loop;
+			}
+		}
+		vmx->ept_access_bitsets_len--;
+		return frz_bts_id;
+		end_frz_id_loop:
+	}
+
+	return bts_id;
+}
+
 static struct kvm_x86_ops vmx_x86_ops __initdata = {
 	.name = "kvm_intel",
 
@@ -8807,6 +8842,8 @@ static struct kvm_x86_ops vmx_x86_ops __initdata = {
 	.chummy_malloc = vmx_chummy_malloc,
 	.chummy_free = vmx_chummy_free,
 	.set_use_vmcs_eptp_idx = vmx_set_use_vmcs_eptp_idx,
+	.freeze_ept_access_ids = vmx_freeze_ept_access_ids,
+	.dedup_ept_access_id = vmx_dedup_ept_access_id,
 };
 
 static unsigned int vmx_handle_intel_pt_intr(void)

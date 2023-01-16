@@ -40,6 +40,8 @@
 #define KVM_HC_CHUMMY_MALLOC		106
 #define KVM_HC_CHUMMY_FREE			107
 #define KVM_HC_SET_USE_VMCS_EPTP_IDX	108
+#define KVM_HC_FREEZE_EPT_ACCESS_IDS	109
+#define KVM_HC_DEDUP_EPT_ACCESS_ID	110
 
 /*
  * hypercalls use architecture specific
