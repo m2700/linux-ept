@@ -8578,7 +8578,7 @@ static long vmx_add_ept_access(
 			vmx->ept_access_bitsets_cap = 1;
 		} else if (vmx->ept_access_bitsets_len >= vmx->ept_access_bitsets_cap) {
 			if (vmx->ept_access_bitsets_cap * 2 * bts_size / 2 / bts_size
-				== vmx->ept_access_bitsets_cap)
+				!= vmx->ept_access_bitsets_cap)
 			{
 				// overflow
 				return -KVM_EFAULT;
