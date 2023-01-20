@@ -8600,6 +8600,9 @@ static long vmx_chummy_malloc(struct kvm_vcpu *vcpu, unsigned long num_pages,
 	if (flag >= vmx->ept_access_bitsets_len) {
 		return -KVM_EINVAL;
 	}
+	if (vmx->ept_access_bitsets_freeze_len && flag >= vmx->ept_access_bitsets_freeze_len) {
+		return -KVM_EPERM;
+	}
 
 	guest_frn = chummy_palloc_flagged(&vmx->chummy, num_pages, &flag);
 	if (guest_frn == CHUMMY_FRAME_NULL) {
@@ -8633,6 +8636,9 @@ static long vmx_chummy_free(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx
 
 	if (flag >= vmx->ept_access_bitsets_len) {
 		return -KVM_EINVAL;
+	}
+	if (vmx->ept_access_bitsets_freeze_len && flag >= vmx->ept_access_bitsets_freeze_len) {
+		return -KVM_EPERM;
 	}
 	if (caller_eptp_idx >= VMFUNC_EPTP_ENTRIES) {
 		return -KVM_EINVAL;
