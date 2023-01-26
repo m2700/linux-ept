@@ -31,7 +31,7 @@ export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EP
 pkgver() {
   cd $_srcname
 
-  echo "$(make kernelversion)-$(git rev-list HEAD --count)" | sed 's/-/./g'
+  echo "$(make kernelversion)-$(git show -s --format=%ct HEAD)" | sed 's/-/./g'
 }
 
 prepare() {
