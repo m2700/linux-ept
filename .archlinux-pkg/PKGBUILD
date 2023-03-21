@@ -4,15 +4,15 @@
 # Contributor: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
 
 pkgbase=linux-ept
-pkgver=6.1.0.rc8.1138681
+pkgver=6.2.7.arch1
 pkgrel=1
 pkgdesc='Linux-Ept (Git)'
 url="https://www.kernel.org"
 arch=(x86_64)
 license=(GPL2)
 makedepends=(
-  bc libelf pahole cpio perl tar xz
-  xmlto 'python-sphinx<6.0.0' python-sphinx_rtd_theme graphviz imagemagick texlive-latexextra
+  bc libelf pahole cpio perl tar xz gettext
+  xmlto python-sphinx graphviz imagemagick texlive-latexextra
   git
   rsync # for api-headers
 )
