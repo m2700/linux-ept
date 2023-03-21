@@ -244,6 +244,9 @@ must also set up an MSR filter to process writes to MSR_KVM_MIGRATION_CONTROL.
 :Status: active
 :Purpose: Set the EPT-allocator memory region
 
+- a0: heap region start (inclusive)
+- a1: heap region end (exclusive)
+
 15. KVM_HC_CHUMMY_MALLOC
 ------------------------
 :Architecture: x86
@@ -290,3 +293,4 @@ must also set up an MSR filter to process writes to MSR_KVM_MIGRATION_CONTROL.
           If a duplicate is found, it's id is returned and the given id removed.
 
 - a0: Id of newest created EPT access set.
+- r0: Either read-only ID with identical bitset content, or the given id.
