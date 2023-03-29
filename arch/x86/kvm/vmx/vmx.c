@@ -8552,7 +8552,7 @@ static long vmx_dedup_ept_access_id(struct kvm_vcpu *vcpu, unsigned long bts_id)
 		}
 		vmx->ept_access_bitsets_len--;
 		return frz_bts_id;
-		end_frz_id_loop:
+		end_frz_id_loop:;
 	}
 
 	return bts_id;
