@@ -2792,7 +2792,6 @@ hpa_t *alloc_eptp_list_cpu(int cpu, gfp_t flags) {
 	if (!pages)
 		return NULL;
 	eptp_list = page_address(pages);
-	printk(KERN_DEBUG "EPTP-list: allocate: pa: 0x%016lx\n", __pa((void*)eptp_list));
 	memset(eptp_list, 0, PAGE_SIZE);
 	return eptp_list;
 }
@@ -2810,23 +2809,18 @@ void free_eptp_list(hpa_t *eptp_list) {
 							for (size_t pml2_i = 0; pml2_i < VMFUNC_EPTP_ENTRIES; pml2_i++) {
 								if (pml2[pml2_i] != 0) {
 									hpa_t *pml1 = __va(pml2[pml2_i] & PHYSICAL_PAGE_MASK);
-									printk(KERN_DEBUG "EPTP-list: free pml1: pa: 0x%016lx\n", __pa((void*)pml1));
 									free_page((unsigned long)pml1);
 								}
 							}
-							printk(KERN_DEBUG "EPTP-list: free pml2: pa: 0x%016lx\n", __pa((void*)pml2));
 							free_page((unsigned long)pml2);
 						}
 					}
-					printk(KERN_DEBUG "EPTP-list: free pml3: pa: 0x%016lx\n", __pa((void*)pml3));
 					free_page((unsigned long)pml3);
 				}
 			}
-			printk(KERN_DEBUG "EPTP-list: free pml4: pa: 0x%016lx\n", __pa((void*)pml4));
 			free_page((unsigned long)pml4);
 		}
 	}
-	printk(KERN_DEBUG "EPTP-list: free: pa: 0x%016lx\n", __pa((void*)eptp_list));
 	free_page((unsigned long)eptp_list);
 }
 
@@ -5715,9 +5709,6 @@ static int handle_ept_violation(struct kvm_vcpu *vcpu)
 		vmcs_set_bits(GUEST_INTERRUPTIBILITY_INFO, GUEST_INTR_STATE_NMI);
 
 	gpa = vmcs_read64(GUEST_PHYSICAL_ADDRESS);
-	printk(KERN_DEBUG "handle_ept_violation: gpa = 0x%016llx\n", gpa);
-	printk(KERN_DEBUG "handle_ept_violation: rip = 0x%016lx\n", kvm_rip_read(vcpu));
-	printk(KERN_DEBUG "handle_ept_violation: eptp-idx = %llu\n", vmcs_read16(EPTP_LIST_INDEX));
 	trace_kvm_page_fault(vcpu, gpa, exit_qualification);
 
 	/* Is it a read fault? */
@@ -5735,8 +5726,6 @@ static int handle_ept_violation(struct kvm_vcpu *vcpu)
 
 	error_code |= (exit_qualification & EPT_VIOLATION_GVA_TRANSLATED) != 0 ?
 	       PFERR_GUEST_FINAL_MASK : PFERR_GUEST_PAGE_MASK;
-	
-	printk(KERN_DEBUG "handle_ept_violation: error_code = 0x%llx\n", error_code);
 
 	vcpu->arch.exit_qualification = exit_qualification;
 
@@ -6372,8 +6361,6 @@ static int __vmx_handle_exit(struct kvm_vcpu *vcpu, fastpath_t exit_fastpath)
 	union vmx_exit_reason exit_reason = vmx->exit_reason;
 	u32 vectoring_info = vmx->idt_vectoring_info;
 	u16 exit_handler_index;
-
-	printk(KERN_DEBUG "__vmx_handle_exit: exit_reason.basic = %i\n", exit_reason.basic);
 
 	/*
 	 * Flush logged GPAs PML buffer, this will make dirty_bitmap more
@@ -8149,64 +8136,6 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 	gfn_t map_dst_gfn;
 	kvm_pfn_t map_src_pfn;
 	hpa_t *eptp;
-
-	printk(KERN_DEBUG "vmx_map_ept_view: eptp_idx = 0x%lx\n", eptp_idx);
-	printk(KERN_DEBUG "vmx_map_ept_view: map_src = 0x%lx\n", map_src);
-	printk(KERN_DEBUG "vmx_map_ept_view: map_dst = 0x%lx\n", map_dst);
-	printk(KERN_DEBUG "vmx_map_ept_view: page_count = 0x%lx\n", page_count);
-	printk(KERN_DEBUG "vmx_map_ept_view: flags = 0x%lx\n", flags);
-
-	printk(KERN_DEBUG "vmx_map_ept_view: cpu_has_secondary_exec_ctrls() = %u\n", cpu_has_secondary_exec_ctrls());
-	printk(KERN_DEBUG "vmx_map_ept_view: EPT SECONDARY_VM_EXEC_CONTROL = 0x%08x\n", vmcs_read32(SECONDARY_VM_EXEC_CONTROL));
-
-	printk(KERN_DEBUG "vmx_map_ept_view: EPT-list pointer = 0x%016llx\n", vmcs_read64(EPTP_LIST_ADDRESS));
-	printk(KERN_DEBUG "vmx_map_ept_view: VM_FUNCTION_CONTROL = 0x%llx\n", vmcs_read64(VM_FUNCTION_CONTROL));
-
-	printk(KERN_DEBUG "vmx_map_ept_view: EPT pointer = 0x%016llx\n", vmcs_read64(EPT_POINTER));
-	printk(KERN_DEBUG "vmx_map_ept_view: vcpu->arch.mmu->root.hpa = 0x%016llx\n", vcpu->arch.mmu->root.hpa);
-	printk(KERN_DEBUG "vmx_map_ept_view: vcpu->arch.mmu->root.pgd = 0x%016llx\n", vcpu->arch.mmu->root.pgd);
-	printk(KERN_DEBUG "vmx_map_ept_view: PHYSICAL_PAGE_MASK = 0x%016llx\n", PHYSICAL_PAGE_MASK);
-
-	{
-		hpa_t *pml4 = (hpa_t*)__va(vmcs_read64(EPT_POINTER) & PHYSICAL_PAGE_MASK);
-		for (size_t i4 = 0; i4 < 512; i4++)
-		{
-			if (pml4[i4]) {
-				hpa_t *pml3 = (hpa_t*)__va(pml4[i4] & PHYSICAL_PAGE_MASK);
-				printk(KERN_DEBUG "vmx_map_ept_view: EPT[%lu] = 0x%016llx\n", i4, pml4[i4]);
-				for (size_t i3 = 0; i3 < 512; i3++)
-				{
-					if (pml3[i3]) {
-						hpa_t *pml2 = (hpa_t*)__va(pml3[i3] & PHYSICAL_PAGE_MASK);
-						printk(
-							KERN_DEBUG "vmx_map_ept_view: EPT[%lu][%lu] = 0x%016llx\n", i4, i3,
-							pml3[i3]
-						);
-						for (size_t i2 = 0; i2 < 512; i2++)
-						{
-							if (pml2[i2]) {
-								hpa_t *pml1 = (hpa_t*)__va(pml2[i2] & PHYSICAL_PAGE_MASK);
-								printk(
-									KERN_DEBUG "vmx_map_ept_view: EPT[%lu][%lu][%lu] = 0x%016llx\n",
-									i4, i3, i2, pml2[i2]
-								);
-								for (size_t i1 = 0; i1 < 512; i1++)
-								{
-									if (pml1[i1]) {
-										printk(
-											KERN_DEBUG
-											"vmx_map_ept_view: EPT[%lu][%lu][%lu][%lu] = 0x%016llx\n",
-											i4, i3, i2, i1, pml1[i1]
-										);
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
 	
 	#ifdef alloc_zeroed_page
 	#error "macro collision: alloc_zeroed_page"
@@ -8216,7 +8145,6 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 		struct page *page = alloc_page(gfp_mask);                                         \
 		if (!page) return -KVM_ENOMEM;                                                    \
 		addr = page_address(page);                                                        \
-		printk(KERN_DEBUG "vmx_map_ept_view: table allocated: pa: %016lx\n", __pa(addr)); \
 		memset(addr, 0, PAGE_SIZE);                                                       \
 		addr;                                                                             \
 	})
@@ -8258,10 +8186,6 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 	if (vmx->eptp_list[eptp_idx] == 0) {
 		hpa_t *pml4 = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
 		vmx->eptp_list[eptp_idx] = construct_eptp(vcpu, __pa((hva_t)pml4), PT64_ROOT_4LEVEL);
-		printk(
-			KERN_DEBUG "vmx_map_ept_view: set EPT-L[%lu] to 0x%016llx\n",
-			eptp_idx, vmx->eptp_list[eptp_idx]
-		);
 	}
 	eptp = __va(vmx->eptp_list[eptp_idx] & PHYSICAL_PAGE_MASK);
 
@@ -8276,7 +8200,6 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 		gfn_t gfn_lv2i = gfn_lv1i >> 9;
 		gfn_t gfn_lv3i = gfn_lv2i >> 9;
 		gfn_t gfn_lv4i = gfn_lv3i >> 9;
-		printk(KERN_DEBUG "vmx_map_ept_view: gfn_lvi = [%llu, %llu, %llu, %llu]\n", gfn_lv4i, gfn_lv3i, gfn_lv2i, gfn_lv1i);
 
 		gfn_lv1i %= 512;
 		gfn_lv2i %= 512;
@@ -8289,83 +8212,22 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 		if (eptp[gfn_lv4i] == 0) {
 			hpa_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
 			eptp[gfn_lv4i] = (hpa_t)__pa(p) | 0b111;
-			printk(
-				KERN_DEBUG "vmx_map_ept_view: set EPT-L[%lu]|[%llu] to 0x%016llx\n",
-				eptp_idx, gfn_lv4i, eptp[gfn_lv4i]
-			);
 		}
 		pml3 = __va(eptp[gfn_lv4i] & PHYSICAL_PAGE_MASK);
 
 		if (pml3[gfn_lv3i] == 0) {
 			hpa_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
 			pml3[gfn_lv3i] = (hva_t)__pa(p) | 0b111;
-			printk(
-				KERN_DEBUG "vmx_map_ept_view: set EPT-L[%lu]|[%llu][%llu] to 0x%016llx\n",
-				eptp_idx, gfn_lv4i, gfn_lv3i, pml3[gfn_lv3i]
-			);
 		}
 		pml2 = __va(pml3[gfn_lv3i] & PHYSICAL_PAGE_MASK);
 
 		if (pml2[gfn_lv2i] == 0) {
 			hpa_t *p = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
 			pml2[gfn_lv2i] = (hva_t)__pa(p) | 0b111;
-			printk(
-				KERN_DEBUG "vmx_map_ept_view: set EPT-L[%lu]|[%llu][%llu][%llu] to 0x%016llx\n",
-				eptp_idx, gfn_lv4i, gfn_lv3i, gfn_lv2i, pml2[gfn_lv2i]
-			);
 		}
 		pml1 = __va(pml2[gfn_lv2i] & PHYSICAL_PAGE_MASK);
 
 		pml1[gfn_lv1i] = pfn_to_hpa(pfn_src) | flags;
-		printk(
-			KERN_DEBUG "vmx_map_ept_view: set EPT-L[%lu]|[%llu][%llu][%llu][%llu] to 0x%016llx\n",
-			eptp_idx, gfn_lv4i, gfn_lv3i, gfn_lv2i, gfn_lv1i, pml1[gfn_lv1i]
-		);
-	}
-
-	for (size_t eptl_i = 0; eptl_i < VMFUNC_EPTP_ENTRIES; eptl_i++)
-	{
-		if (vmx->eptp_list[eptl_i]) {
-			hpa_t *pml4 = (hpa_t*)__va(vmx->eptp_list[eptl_i] & PHYSICAL_PAGE_MASK);
-			printk(KERN_DEBUG "vmx_map_ept_view: EPT-L[%lu] = 0x%016llx\n", eptl_i, vmx->eptp_list[eptl_i]);
-			for (size_t i4 = 0; i4 < 512; i4++)
-			{
-				if (pml4[i4]) {
-					hpa_t *pml3 = (hpa_t*)__va(pml4[i4] & PHYSICAL_PAGE_MASK);
-					printk(KERN_DEBUG "vmx_map_ept_view: EPT-L[%lu]|[%lu] = 0x%016llx\n", eptl_i, i4, pml4[i4]);
-					for (size_t i3 = 0; i3 < 512; i3++)
-					{
-						if (pml3[i3]) {
-							hpa_t *pml2 = (hpa_t*)__va(pml3[i3] & PHYSICAL_PAGE_MASK);
-							printk(
-								KERN_DEBUG "vmx_map_ept_view: EPT-L[%lu]|[%lu][%lu] = 0x%016llx\n",
-								eptl_i, i4, i3, pml3[i3]
-							);
-							for (size_t i2 = 0; i2 < 512; i2++)
-							{
-								if (pml2[i2]) {
-									hpa_t *pml1 = (hpa_t*)__va(pml2[i2] & PHYSICAL_PAGE_MASK);
-									printk(
-										KERN_DEBUG "vmx_map_ept_view: EPT-L[%lu]|[%lu][%lu][%lu] = 0x%016llx\n",
-										eptl_i, i4, i3, i2, pml2[i2]
-									);
-									for (size_t i1 = 0; i1 < 512; i1++)
-									{
-										if (pml1[i1]) {
-											printk(
-												KERN_DEBUG
-												"vmx_map_ept_view: EPT-L[%lu]|[%lu][%lu][%lu][%lu] = 0x%016llx\n",
-												eptl_i, i4, i3, i2, i1, pml1[i1]
-											);
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
 	}
 
 	return res;
@@ -8422,7 +8284,6 @@ static long vmx_unmap_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long ept
 		gfn_t gfn_lv2i = gfn_lv1i >> 9;
 		gfn_t gfn_lv3i = gfn_lv2i >> 9;
 		gfn_t gfn_lv4i = gfn_lv3i >> 9;
-		printk(KERN_DEBUG "vmx_unmap_ept_view: gfn_lvi = [%llu, %llu, %llu, %llu]\n", gfn_lv4i, gfn_lv3i, gfn_lv2i, gfn_lv1i);
 
 		gfn_lv1i %= 512;
 		gfn_lv2i %= 512;
@@ -8448,10 +8309,6 @@ static long vmx_unmap_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long ept
 		pml1 = __va(pml2[gfn_lv2i] & PHYSICAL_PAGE_MASK);
 
 		pml1[gfn_lv1i] = 0;
-		printk(
-			KERN_DEBUG "vmx_unmap_ept_view: set EPT-L[%lu]|[%llu][%llu][%llu][%llu] to 0x%016llx\n",
-			eptp_idx, gfn_lv4i, gfn_lv3i, gfn_lv2i, gfn_lv1i, pml1[gfn_lv1i]
-		);
 	}
 
 	return res;
