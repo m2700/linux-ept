@@ -65,7 +65,7 @@ int chummy_pfree_flagged(chummy_alloc *chummy, chummy_frame_num_t pstart,
 #ifdef CHUMMY_INTERNAL
 
 #ifdef CHUMMY_ASSERT
-#define assert(cond) if (!(cond)) { printk(KERN_DEBUG "Assert Error: " #cond "\n"); }
+#define assert(cond) if (!(cond)) { printk(KERN_DEBUG "Chummy-Alloc: Assert Error: " #cond "\n"); }
 #else // CHUMMY_ASSERT
 #define assert(cond)
 #endif // CHUMMY_ASSERT
