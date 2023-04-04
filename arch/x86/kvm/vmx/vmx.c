@@ -8133,8 +8133,8 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 									  unsigned long page_count, unsigned long flags) {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 	long res = 0;
+	gfn_t map_src_gfn;
 	gfn_t map_dst_gfn;
-	kvm_pfn_t map_src_pfn;
 	hpa_t *eptp;
 	
 	#ifdef alloc_zeroed_page
@@ -8174,14 +8174,12 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 		return -KVM_EINVAL;
 	}
 
-	map_dst_gfn = gpa_to_gfn(map_dst);
-	map_src_pfn = kvm_vcpu_gfn_to_pfn(vcpu, gpa_to_gfn(map_src));
-	if (!map_src_pfn) {
-		return -KVM_EFAULT;
-	}
 	if (page_count == 0) {
 		return res;
 	}
+
+	map_src_gfn = gpa_to_gfn(map_src);
+	map_dst_gfn = gpa_to_gfn(map_dst);
 	
 	if (vmx->eptp_list[eptp_idx] == 0) {
 		hpa_t *pml4 = alloc_zeroed_page(GFP_KERNEL_ACCOUNT | __GFP_DMA32);
@@ -8193,8 +8191,12 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 	{
 		hpa_t *pml3, *pml2, *pml1;
 
-		kvm_pfn_t pfn_src = map_src_pfn + map_idx;
 		gfn_t gfn_dst = map_dst_gfn + map_idx;
+		gfn_t gfn_src = map_src_gfn + map_idx;
+		kvm_pfn_t pfn_src = kvm_vcpu_gfn_to_pfn(vcpu, gfn_src);
+		if (!pfn_src) {
+			return -KVM_EFAULT;
+		}
 
 		gfn_t gfn_lv1i = gfn_dst;
 		gfn_t gfn_lv2i = gfn_lv1i >> 9;
