@@ -8191,17 +8191,23 @@ static long vmx_map_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_
 	{
 		hpa_t *pml3, *pml2, *pml1;
 
-		gfn_t gfn_dst = map_dst_gfn + map_idx;
-		gfn_t gfn_src = map_src_gfn + map_idx;
-		kvm_pfn_t pfn_src = kvm_vcpu_gfn_to_pfn(vcpu, gfn_src);
+		gfn_t gfn_dst, gfn_src;
+		kvm_pfn_t pfn_src;
+
+		gfn_t gfn_lv1i, gfn_lv2i, gfn_lv3i, gfn_lv4i;
+
+		gfn_dst = map_dst_gfn + map_idx;
+		gfn_src = map_src_gfn + map_idx;
+		pfn_src = kvm_vcpu_gfn_to_pfn(vcpu, gfn_src);
+
 		if (!pfn_src) {
 			return -KVM_EFAULT;
 		}
 
-		gfn_t gfn_lv1i = gfn_dst;
-		gfn_t gfn_lv2i = gfn_lv1i >> 9;
-		gfn_t gfn_lv3i = gfn_lv2i >> 9;
-		gfn_t gfn_lv4i = gfn_lv3i >> 9;
+		gfn_lv1i = gfn_dst;
+		gfn_lv2i = gfn_lv1i >> 9;
+		gfn_lv3i = gfn_lv2i >> 9;
+		gfn_lv4i = gfn_lv3i >> 9;
 
 		gfn_lv1i %= 512;
 		gfn_lv2i %= 512;
@@ -8277,7 +8283,7 @@ static long vmx_unmap_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long ept
 		return res;
 	}
 	hpa_eptp_entry = vmx->eptp_list[eptp_idx];
-	eptp = __va(hpa_eptp & PHYSICAL_PAGE_MASK);
+	eptp = __va(hpa_eptp_entry & PHYSICAL_PAGE_MASK);
 
 	for (size_t map_idx = 0; map_idx < page_count; map_idx++)
 	{
