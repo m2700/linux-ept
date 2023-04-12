@@ -8248,10 +8248,12 @@ static long vmx_map_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 }
 
 static long vmx_unmap_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
-										unsigned long map_dst, unsigned long page_count) {
+										unsigned long map_dst, unsigned long page_count,
+										bool zero) {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 	long res = 0;
 	gfn_t map_dst_gfn;
+	hpa_t hpa_eptp_entry;
 	hpa_t *eptp;
 
 	if ((map_dst & !PHYSICAL_PAGE_MASK) != 0 || map_dst % PAGE_SIZE != 0) {
@@ -8274,7 +8276,8 @@ static long vmx_unmap_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long ept
 	if (vmx->eptp_list[eptp_idx] == 0) {
 		return res;
 	}
-	eptp = __va(vmx->eptp_list[eptp_idx] & PHYSICAL_PAGE_MASK);
+	hpa_eptp_entry = vmx->eptp_list[eptp_idx];
+	eptp = __va(hpa_eptp & PHYSICAL_PAGE_MASK);
 
 	for (size_t map_idx = 0; map_idx < page_count; map_idx++)
 	{
@@ -8287,11 +8290,14 @@ static long vmx_unmap_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long ept
 		gfn_t gfn_lv3i = gfn_lv2i >> 9;
 		gfn_t gfn_lv4i = gfn_lv3i >> 9;
 
+		hpa_t hpa_ptr;
+
 		gfn_lv1i %= 512;
 		gfn_lv2i %= 512;
 		gfn_lv3i %= 512;
 		if (gfn_lv4i >= 512) {
-			return -KVM_EFAULT;
+			res = -KVM_EFAULT;
+			goto unmap_ept_end;
 		}
 
 		// eptp is pml4
@@ -8310,8 +8316,18 @@ static long vmx_unmap_ept_view_nofreeze(struct kvm_vcpu *vcpu, unsigned long ept
 		}
 		pml1 = __va(pml2[gfn_lv2i] & PHYSICAL_PAGE_MASK);
 
+		if (zero) {
+			hpa_ptr = pml1[gfn_lv1i] & PHYSICAL_PAGE_MASK;
+			if (hpa_ptr != 0) {
+				memset(__va(hpa_ptr), 0, PAGE_SIZE);
+			}
+		}
+
 		pml1[gfn_lv1i] = 0;
 	}
+
+unmap_ept_end:
+	ept_sync_context(hpa_eptp_entry);
 
 	return res;
 }
@@ -8322,7 +8338,7 @@ static long vmx_unmap_ept_view(struct kvm_vcpu *vcpu, unsigned long eptp_idx,
 	if (vmx->ept_map_freeze) {
 		return -KVM_EPERM;
 	}
-	return vmx_unmap_ept_view_nofreeze(vcpu, eptp_idx, map_dst, page_count);
+	return vmx_unmap_ept_view_nofreeze(vcpu, eptp_idx, map_dst, page_count, false);
 }
 
 static long vmx_freeze_ept_mapping(struct kvm_vcpu *vcpu) {
@@ -8515,7 +8531,7 @@ static long vmx_chummy_free(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx
 
 	VMX_BTS_FOREACH_BITIDX(vmx->ept_access_bitsets, flag, arr_i, bitidx) {
 		size_t view_idx = arr_i * 64 + bitidx;
-		res = vmx_unmap_ept_view_nofreeze(vcpu, view_idx, guest_ptr, num_pages);
+		res = vmx_unmap_ept_view_nofreeze(vcpu, view_idx, guest_ptr, num_pages, true);
 		if (res != 0) { return res; }
 	}
 
