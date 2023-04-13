@@ -8508,6 +8508,8 @@ static long vmx_chummy_free(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx
 	size_t bts_caller_arr_idx = caller_eptp_idx / (bts_elem_size*8);
 	size_t bts_caller_bitidx = caller_eptp_idx % (bts_elem_size*8);
 
+	bool data_exists = true;
+
 	if (vmx->use_vmcs_eptp_idx) {
 		caller_eptp_idx = vmcs_read16(EPTP_LIST_INDEX);
 	}
@@ -8537,8 +8539,9 @@ static long vmx_chummy_free(struct kvm_vcpu *vcpu, unsigned long caller_eptp_idx
 
 	VMX_BTS_FOREACH_BITIDX(vmx->ept_access_bitsets, flag, arr_i, bitidx) {
 		size_t view_idx = arr_i * 64 + bitidx;
-		res = vmx_unmap_ept_view_nofreeze(vcpu, view_idx, guest_ptr, num_pages, true);
+		res = vmx_unmap_ept_view_nofreeze(vcpu, view_idx, guest_ptr, num_pages, data_exists);
 		if (res != 0) { return res; }
+		data_exists = false;
 	}
 
 	return res;
